@@ -43,18 +43,20 @@ func LoadAndGetDB(t Fataler) *ipinfo.DB {
 
 func BenchmarkLookup(b *testing.B) {
 	db := LoadAndGetDB(b)
-	ips := generateRandomPublicIPs(100_000, 0.5, uint64(time.Now().Unix()))
+	ips := generateRandomPublicIPs(1024, 0.5, uint64(time.Now().Unix()))
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for b.Loop() {
-		ip := ips[rand.IntN(len(ips))]
+
+	for i := 0; i < b.N; i++ {
+		ip := ips[i&1023] // works because 1024 is a power of 2
 		_, err := db.Lookup(ip)
 		if err != nil {
 			b.Fatalf("failed to lookup IP address: %v", err)
 		}
 	}
 }
+
 
 // Generates a random public IPv4 address (avoids private/reserved ranges)
 func randomPublicIPv4(rng *rand.Rand) netip.Addr {

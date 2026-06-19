@@ -9,7 +9,12 @@ import (
 	"net"
 	"net/netip"
 	"os"
+	"os/signal"
+	"runtime"
+	"syscall"
 	"time"
+
+	"github.com/dustin/go-humanize"
 )
 
 type Network struct {
@@ -91,4 +96,20 @@ func main() {
 	fmt.Printf("  Load: %v\n", loadDone)
 	fmt.Printf("  Lookup: %v\n", lookupDone)
 	fmt.Printf("  Total: %v\n", total)
+
+	runtime.GC()
+	stats := new(runtime.MemStats)
+	runtime.ReadMemStats(stats)
+	printMemoryStats(stats)
+	c := make(chan os.Signal)
+	signal.Notify(c, syscall.SIGTERM, os.Interrupt)
+	<-c
+}
+
+func printMemoryStats(stats *runtime.MemStats) {
+	fmt.Printf("Memory Usage:\n")
+	fmt.Printf("  Alloc: %s bytes\n", humanize.Bytes(stats.Alloc))
+	fmt.Printf("  Total Alloc: %s bytes\n", humanize.Bytes(stats.TotalAlloc))
+	fmt.Printf("  Sys: %s bytes\n", humanize.Bytes(stats.Sys))
+	fmt.Printf("  Num GC: %d\n", stats.NumGC)
 }
