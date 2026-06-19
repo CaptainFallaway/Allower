@@ -13,9 +13,10 @@ import (
 	"path"
 
 	"github.com/goccy/go-json" // Just because it's fun
+	"github.com/oschwald/maxminddb-golang/v2"
 )
 
-const datasetName = "ipinfo_lite.csv.gz"
+const datasetName = "ipinfo_lite.mmdb"
 const datasetDownloadURL = "https://ipinfo.io/data/" + datasetName
 const datasetChecksumURL = "https://ipinfo.io/data/" + datasetName + "/checksums"
 
@@ -60,8 +61,37 @@ func (d *managedDataset) Sync(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-func (d *managedDataset) NewScanner() (*datasetScanner, error) {
-	return newDatasetScanner(d.datasetPath)
+func (d *managedDataset) NewMmdbReader() (*maxminddb.Reader, error) {
+	file, err := os.Open(d.datasetPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open dataset file: %w", err)
+	}
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get file stats: %w", err)
+	}
+
+	buf := make([]byte, stat.Size())
+	n, err := io.ReadFull(file, buf)
+	if err != nil {
+		if n > 0 {
+			return nil, fmt.Errorf("failed to read entire dataset file: %w", err)
+		} else if errors.Is(err, io.ErrUnexpectedEOF) {
+			return nil, fmt.Errorf("dataset file is empty: %w", err)
+		} else if n != int(stat.Size()) {
+			return nil, fmt.Errorf("read %d bytes but expected %d: %w", n, stat.Size(), err)
+		}
+		return nil, fmt.Errorf("failed to read dataset file: %w", err)
+	}
+
+	reader, err := maxminddb.OpenBytes(buf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create MMDB reader: %w", err)
+	}
+
+	return reader, nil
 }
 
 func (d *managedDataset) getLocalSum() (string, error) {
@@ -133,7 +163,7 @@ func (d *managedDataset) downloadDatabase(ctx context.Context) error {
 		return fmt.Errorf("invalid content length: %d", resp.ContentLength)
 	} else if resp.ContentLength > 1<<30 { // 1 GB
 		return fmt.Errorf("content length too large: %d", resp.ContentLength)
-	} else if resp.Header.Get("Content-Type") != "application/gzip" {
+	} else if resp.Header.Get("Content-Type") != "application/vnd.maxmind.maxmind-db" {
 		return fmt.Errorf("unexpected content type: %s", resp.Header.Get("Content-Type"))
 	}
 

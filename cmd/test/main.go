@@ -75,8 +75,11 @@ func main() {
 
 	lookupStart := time.Now()
 	ip := netip.MustParseAddr("85.24.194.0")
-	info, found := db.Lookup(ip)
-	fmt.Printf("Lookup for IP %s: Found: %v, Info: %+v\n", ip, found, info)
+	info, err := db.Lookup(ip)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Lookup for IP %s: Info: %+v\n", ip, info)
 	lookupDone := time.Since(lookupStart)
 
 	total := time.Since(start)
