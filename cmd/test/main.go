@@ -8,6 +8,7 @@ import (
 	"math/bits"
 	"net"
 	"net/netip"
+	"os"
 	"time"
 )
 
@@ -46,7 +47,6 @@ func parseNetwork(s string) (Network, error) {
 	}, nil
 }
 
-const ipInfoToken = "f525bab9268bfe"
 
 func main() {
 	// network, err := parseNetwork("2a02:aa6:446:66::1000:0/100")
@@ -56,7 +56,7 @@ func main() {
 
 	// fmt.Println(network)
 
-	db := ipinfo.New(ipInfoToken, "./test-data")
+	db := ipinfo.New(os.Getenv("IPINFO_TOKEN"), "./test-data")
 
 	start := time.Now()
 	changed, err := db.Sync(context.Background())
@@ -72,6 +72,8 @@ func main() {
 		log.Fatal(err)
 	}
 	loadDone := time.Since(loadStart)
+
+	db.Lookup(netip.MustParseAddr("155.4.194.14"))
 
 	lookupStart := time.Now()
 	ip := netip.MustParseAddr("85.24.194.0")
