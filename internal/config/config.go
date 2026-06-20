@@ -14,7 +14,7 @@ const configTemplate = `#Example config.yaml
 entrypoints:
     - name: http
       addr: :80
-      target: example.com:443
+      target: sweden.se:443
       rules: [only_swedish]
 
 rules:
