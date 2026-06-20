@@ -1,7 +1,6 @@
 package main
 
 import (
-	"Reverser/pkg/ipinfo"
 	"context"
 	"fmt"
 	"log"
@@ -13,6 +12,8 @@ import (
 	"runtime"
 	"syscall"
 	"time"
+
+	"github.com/CaptainFallaway/Reverser/pkg/ipinfo"
 
 	"github.com/dustin/go-humanize"
 )
@@ -52,7 +53,6 @@ func parseNetwork(s string) (Network, error) {
 	}, nil
 }
 
-
 func main() {
 	// network, err := parseNetwork("2a02:aa6:446:66::1000:0/100")
 	// if err != nil {
@@ -81,7 +81,7 @@ func main() {
 	db.Lookup(netip.MustParseAddr("155.4.194.14"))
 
 	lookupStart := time.Now()
-	ip := netip.MustParseAddr("85.24.194.0")
+	ip := netip.MustParseAddr("85.24.194.40")
 	info, err := db.Lookup(ip)
 	if err != nil {
 		log.Fatal(err)

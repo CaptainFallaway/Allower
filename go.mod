@@ -1,4 +1,4 @@
-module Reverser
+module github.com/CaptainFallaway/Reverser
 
 go 1.26.4
 

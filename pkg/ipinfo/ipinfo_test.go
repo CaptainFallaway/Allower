@@ -1,7 +1,7 @@
 package ipinfo_test
 
 import (
-	"Reverser/pkg/ipinfo"
+	"github.com/CaptainFallaway/Reverser/pkg/ipinfo"
 	"context"
 	"fmt"
 	"math/rand/v2"
