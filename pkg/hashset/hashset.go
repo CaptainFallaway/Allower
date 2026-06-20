@@ -2,7 +2,7 @@ package hashset
 
 type Set[T comparable] map[T]struct{}
 
-func NewSet[T comparable](is ...T) Set[T] {
+func New[T comparable](is ...T) Set[T] {
 	if len(is) == 0 {
 		return make(Set[T])
 	}
