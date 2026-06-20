@@ -68,6 +68,27 @@ func validateConfig(c *Config) error {
 		}
 	}
 
+	// Check the range rules, either from and to must be defined or the range is only a prefix
+	for _, rule := range c.Rules {
+		for i, r := range rule.Ranges {
+			if !r.From.IsValid() && !r.To.IsValid() {
+				if !r.Prefix.IsValid() {
+					errs = append(errs, fmt.Errorf("rule %q invalid range no. %d for: either prefix or from, to must be defined for a range", rule.Name, i))
+				}
+				r.Type = RangeTypePrefix
+				continue
+			}
+			if r.From.IsValid() && r.To.IsValid() {
+				if r.Prefix.IsValid() {
+					errs = append(errs, fmt.Errorf("rule %q invalid range no. %d: both prefix and from, to cannot be defined for a range", rule.Name, i))
+				}
+				r.Type = RangeTypeFromTo
+				continue
+			}
+			errs = append(errs, fmt.Errorf("rule %q invalid range no. %d: either from, to or a prefix must be defined", rule.Name, i))
+		}
+	}
+
 	return errors.Join(errs...)
 }
 

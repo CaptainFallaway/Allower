@@ -26,7 +26,16 @@ type Rule struct {
 	Continents []string     `yaml:"continents"`
 }
 
+type RangeType int
+
+const (
+	RangeTypePrefix RangeType = iota
+	RangeTypeFromTo
+)
+
 type Range struct {
-	From netip.Addr `yaml:"from"`
-	To   netip.Addr `yaml:"to"`
+	Type   RangeType    // Type of the range: Prefix or FromTo set
+	From   netip.Addr   `yaml:"from"`
+	To     netip.Addr   `yaml:"to"`
+	Prefix netip.Prefix `yaml:"prefix"`
 }
