@@ -20,5 +20,5 @@ rules:
       allow: [] # list of ips to allow
       as_numbers: [] # List of AS numbers to allow
       countries: [SE] # List of country codes to allow
-      continents: [] # List of continent codes to allow
+      continents: [EU] # List of continent codes to allow
 ```
