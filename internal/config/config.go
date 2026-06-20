@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 
 	"go.yaml.in/yaml/v4"
 )
@@ -68,8 +69,15 @@ func validateConfig(c *Config) error {
 		}
 	}
 
-	// Check the range rules, either from and to must be defined or the range is only a prefix
 	for _, rule := range c.Rules {
+		// Check the AS numbers, they should be in the format AS12345
+		for i, as := range rule.ASs {
+			if strings.HasPrefix(as.Number, "AS") {
+				errs = append(errs, fmt.Errorf("rule %q invalid AS no. %d: AS number must be in the format AS12345", rule.Name, i))
+			}
+		}
+
+		// Check the range rules, either from and to must be defined or the range is only a prefix
 		for i, r := range rule.Ranges {
 			if !r.From.IsValid() && !r.To.IsValid() {
 				if !r.Prefix.IsValid() {

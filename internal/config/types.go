@@ -21,7 +21,7 @@ type Rule struct {
 	Block      []netip.Addr `yaml:"block"`
 	Allow      []netip.Addr `yaml:"allow"`
 	Ranges     []Range      `yaml:"ranges"`
-	ASNumbers  []string     `yaml:"as_numbers"`
+	ASs        []AS         `yaml:"ass"`
 	Countries  []string     `yaml:"countries"`
 	Continents []string     `yaml:"continents"`
 }
@@ -38,4 +38,10 @@ type Range struct {
 	From   netip.Addr   `yaml:"from"`
 	To     netip.Addr   `yaml:"to"`
 	Prefix netip.Prefix `yaml:"prefix"`
+}
+
+type AS struct {
+	Number string `yaml:"number"`
+	Name   string `yaml:"name"`
+	Domain string `yaml:"domain"`
 }
