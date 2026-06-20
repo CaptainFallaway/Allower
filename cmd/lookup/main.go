@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/CaptainFallaway/Reverser/pkg/ipinfo"
+	"github.com/CaptainFallaway/Allower/pkg/ipinfo"
 )
 
 func main() {

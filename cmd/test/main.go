@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/CaptainFallaway/Reverser/internal/config"
+	"github.com/CaptainFallaway/Allower/internal/config"
 )
 
 func main() {

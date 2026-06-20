@@ -1,4 +1,4 @@
-module github.com/CaptainFallaway/Reverser
+module github.com/CaptainFallaway/Allower
 
 go 1.26.4
 
