@@ -14,9 +14,9 @@ type DB struct {
 	table   atomic.Pointer[maxminddb.Reader]
 }
 
-func New(token, storagePath string) *DB {
+func New(token, storageDir string) *DB {
 	return &DB{
-		dataset: newManagedDataset(token, storagePath),
+		dataset: newManagedDataset(token, storageDir),
 	}
 }
 

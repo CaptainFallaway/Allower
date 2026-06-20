@@ -30,9 +30,9 @@ type managedDataset struct {
 	client *http.Client
 }
 
-func newManagedDataset(token, storagePath string) *managedDataset {
+func newManagedDataset(token, storageDir string) *managedDataset {
 	return &managedDataset{
-		datasetPath: path.Join(storagePath, datasetName),
+		datasetPath: path.Join(storageDir, datasetName),
 		token:       token,
 		hasher:      sha256.New(),
 		client:      new(http.Client),
