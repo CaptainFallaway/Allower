@@ -8,7 +8,7 @@ This is a full illustration of the config file.
 entrypoints:
     - name: lmstudio
       addr: :8080 # host:port to listen on
-      target: localhost:1234 # host:port to forward the request to
+      target: 192.168.1.4:1234 # host:port to forward the request to
       rules: [only_swedish] # one of any rules have to apply for the request to be allowed, all conditions in a rule have to apply for the rule to apply
 
 rules:
