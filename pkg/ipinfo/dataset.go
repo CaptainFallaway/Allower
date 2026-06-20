@@ -168,7 +168,6 @@ func (d *managedDataset) downloadDatabase(ctx context.Context) error {
 	}
 
 	// We need to verify the checksum before writing to disk to avoid leaving a corrupted file
-
 	remoteSum, err := d.getRemoteSum(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get remote checksum: %w", err)
