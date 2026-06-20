@@ -22,8 +22,6 @@ rules:
       countries: [SE]
 `
 
-var ErrCreatedFile = errors.New("config.yaml has been created, please fill in the content and restart the program")
-
 func Load(path string) (*Config, error) {
 	file, err := os.Open(path)
 	if errors.Is(err, os.ErrNotExist) {
@@ -85,5 +83,5 @@ func createConfigFile(path string) error {
 		return fmt.Errorf("failed to write config template: %w", err)
 	}
 
-	return ErrCreatedFile
+	return ErrCreatedConfigFile{path}
 }

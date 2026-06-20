@@ -9,7 +9,6 @@ type Config struct {
 	Rules       []Rule       `yaml:"rules"`
 }
 
-// Entrypoint defines a HTTP or TCP entrypoint for the proxy server.
 type Entrypoint struct {
 	Name   string   `yaml:"name"`
 	Addr   string   `yaml:"addr"`
@@ -17,7 +16,6 @@ type Entrypoint struct {
 	Rules  []string `yaml:"rules"`
 }
 
-// Rule defines a set of conditions and actions for traffic management.
 type Rule struct {
 	Name       string       `yaml:"name"`
 	Block      []netip.Addr `yaml:"block"`
