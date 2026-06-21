@@ -37,17 +37,21 @@ func LoadAndGetDB(t Fataler) *ipinfo.DB {
 		return db
 	}
 
-	db := ipinfo.New(os.Getenv("IPINFO_TOKEN"), "../../test-data")
+	token := os.Getenv("IPINFO_TOKEN")
+	db = ipinfo.New(token, "../../test-data")
 
-	updated, err := db.Sync(context.Background())
-	if err != nil {
-		t.Fatalf("failed to sync dataset: %v", err)
-	}
-	if updated {
-		fmt.Println("dataset was update")
+	// if token is set, attempt to sync the dataset to get the latest data; if not, just try to load the existing dataset from disk
+	if token != "" {
+		updated, err := db.Sync(context.Background())
+		if err != nil {
+			t.Fatalf("failed to sync dataset: %v", err)
+		}
+		if updated {
+			fmt.Println("dataset was update")
+		}
 	}
 
-	err = db.Load()
+	err := db.Load()
 	if err != nil {
 		t.Fatalf("failed to load dataset: %v", err)
 	}
