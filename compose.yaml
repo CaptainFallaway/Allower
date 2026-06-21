@@ -1,11 +1,15 @@
 services:
     allower:
         image: allower:latest
+        build:
+            context: .
+            dockerfile: Dockerfile
         container_name: allower
         network_mode: host
         environment:
             IPINFO_TOKEN: ${IPINFO_TOKEN:-}
             LOG_PRETTY: false
             LOG_LEVEL: "info"
+            METRICS: 30s
         volumes:
             - ./test-data:/persist
