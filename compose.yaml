@@ -1,8 +1,8 @@
 services:
     allower:
         image: allower:latest
+        network_mode: host
         environment:
             IPINFO_TOKEN: ${IPINFO_TOKEN:-}
         volumes:
-            - ./test-data:/data
-            - ./config.yaml:/config.yaml
+            - ./test-data:/persist
