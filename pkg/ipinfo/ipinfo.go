@@ -81,7 +81,7 @@ func (d *DB) Lookup(addr netip.Addr) (*Record, error) {
 	if result.Err() != nil {
 		return nil, fmt.Errorf("failed to lookup IP address: %w", result.Err())
 	} else if !result.Found() {
-		return nil, ErrIpNotFound
+		return nil, ErrNotFound
 	}
 
 	var record *Record

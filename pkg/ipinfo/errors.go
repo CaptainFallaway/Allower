@@ -14,6 +14,6 @@ func (e ErrUnmatchedChecksum) Error() string {
 }
 
 var (
-	ErrIpNotFound    = errors.New("address not found in dataset")
+	ErrNotFound      = errors.New("address not found in dataset")
 	ErrAddrIsPrivate = errors.New("address is private")
 )
