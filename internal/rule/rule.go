@@ -13,7 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Lookup interface abstracts the IP lookup dependency for testability.
+// Lookup interface abstracts the address lookup dependency for testability.
 type Lookuper interface {
 	Lookup(addr netip.Addr) (*ipinfo.Record, error)
 }
@@ -90,11 +90,15 @@ func toLower(str string) string {
 }
 
 func (r *Rule) IsAllowed(ip netip.Addr) bool {
+	log := r.log.With().Str("ip", ip.String()).Logger()
+
 	if contains(r.allowSet, ip) {
+		log.Debug().Msg("explicitly allowed")
 		return true
 	}
 
 	if contains(r.blockSet, ip) {
+		log.Debug().Msg("explicitly blocked")
 		return false
 	}
 
@@ -102,43 +106,58 @@ func (r *Rule) IsAllowed(ip netip.Addr) bool {
 		switch r.Type {
 		case config.RangeTypeFromTo:
 			if ip.Compare(r.From) >= 0 && ip.Compare(r.To) <= 0 {
+				log.Debug().Msg("within range")
 				return true
 			}
 		case config.RangeTypePrefix:
 			if r.Prefix.Contains(ip) {
+				log.Debug().Msg("within prefix")
 				return true
 			}
 		}
 	}
 
-	// If the IP is not explicitly allowed or blocked, we check the IP info for country, continent, and AS matches.
+	// If the address is not explicitly allowed or blocked, we check the address info for country, continent, and AS matches.
 	record, err := r.db.Lookup(ip)
 	if err == nil {
 		defer record.Free()
 
 		if contains(r.countrySet, toLower(record.CountryCode)) {
+			log.Debug().Str("country", record.CountryCode).Msg("country match")
 			return true
 		}
 
 		if contains(r.continentSet, toLower(record.ContinentCode)) {
+			log.Debug().Str("continent", record.ContinentCode).Msg("continent match")
 			return true
 		}
 
 		for _, as := range r.ass {
 			if as.Number != "" && as.Number == record.AsNumber {
+				log.Debug().Msg("as number match")
 				return true
 			}
 			if as.Domain != "" && as.Domain == record.ASDomain {
+				log.Debug().Msg("as domain match")
 				return true
 			}
 			if as.Name != "" && strings.Contains(toLower(record.ASName), toLower(as.Name)) {
+				log.Debug().Str("contained", as.Name).Msg("as name match")
 				return true
 			}
 		}
 	} else if errors.Is(err, ipinfo.ErrAddrIsPrivate) {
-		r.log.Debug().Str("ip", ip.String()).Msg("address is private")
+		log.Debug().Msg("address is private")
 	} else {
-		r.log.Warn().Str("ip", ip.String()).Err(err).Msg("failed to lookup address")
+		log.Warn().Err(err).Msg("failed to lookup address")
+	}
+
+	if record != nil {
+		log.Debug().
+			Str("country", record.CountryCode).
+			Str("continent", record.ContinentCode).
+			Str("as", record.AsNumber).
+			Msg("denied address")
 	}
 
 	return false
