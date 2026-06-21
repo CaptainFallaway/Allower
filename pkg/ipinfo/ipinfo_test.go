@@ -2,12 +2,12 @@ package ipinfo_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand/v2"
 	"net/netip"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/CaptainFallaway/Allower/pkg/ipinfo"
 )
@@ -46,19 +46,49 @@ func LoadAndGetDB(t Fataler) *ipinfo.DB {
 	return db
 }
 
-func BenchmarkLookup(b *testing.B) {
+func BenchmarkLookupByRatio(b *testing.B) {
 	db := LoadAndGetDB(b)
-	ips := generateRandomPublicIPs(1024, 0.5, uint64(time.Now().Unix()))
 
-	b.ReportAllocs()
-	b.ResetTimer()
+	ratios := []struct {
+		name    string
+		ipv4Pct float64 // 0.0 = all v6, 1.0 = all v4
+	}{
+		{"all_v6", 0.0},
+		{"25%_v4", 0.25},
+		{"50%_v4", 0.5},
+		{"75%_v4", 0.75},
+		{"all_v4", 1.0},
+	}
 
+	// Parent benchmark: aggregate ALL ratios into BenchmarkLookupByRatio total
+	var ip netip.Addr
 	for i := 0; i < b.N; i++ {
-		ip := ips[i&1023] // works because 1024 is a power of 2
-		_, err := db.Lookup(ip)
-		if err != nil {
-			b.Fatalf("failed to lookup IP address: %v", err)
+		for _, r := range ratios {
+			ips := generateRandomPublicIPs(1024, r.ipv4Pct, 42)
+			ip = ips[i&1023]
+			_, err := db.Lookup(ip)
+			if err != nil && !errors.Is(err, ipinfo.ErrNotFound) {
+				b.Fatalf("failed to lookup IP address %q: %v", ip, err)
+			}
 		}
+	}
+
+	// Sub-benchmarks: each ratio generates its own IPs independently
+	for _, r := range ratios {
+		b.Run(r.name, func(bb *testing.B) {
+			ips := generateRandomPublicIPs(1024, r.ipv4Pct, 42)
+
+			bb.ReportAllocs()
+			bb.ResetTimer()
+
+			for i := 0; i < bb.N; i++ {
+				ip = ips[i&1023]
+				_, err := db.Lookup(ip)
+				if err != nil && !errors.Is(err, ipinfo.ErrNotFound) {
+					bb.Fatalf("failed to lookup IP address %q: %v", ip, err)
+				}
+			}
+		})
 	}
 }
 
