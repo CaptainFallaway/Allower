@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	conf, err := config.Load("./config.yaml")
+	conf, err := config.Load("./test-data/config.yaml")
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
