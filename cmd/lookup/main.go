@@ -94,7 +94,7 @@ func getValidIPsFromArgs(offsetArgs bool) ([]netip.Addr, error) {
 	}
 
 	if len(os.Args) < 2+off {
-		return nil, fmt.Errorf("no IP addresses provided")
+		return nil, fmt.Errorf("no addresses provided")
 	}
 
 	ips := make([]netip.Addr, 0, len(os.Args)-1+off)
@@ -109,7 +109,7 @@ func getValidIPsFromArgs(offsetArgs bool) ([]netip.Addr, error) {
 	}
 
 	if len(ips) == 0 {
-		return nil, fmt.Errorf("no valid IP addresses provided")
+		return nil, fmt.Errorf("no valid addresses provided")
 	}
 
 	return ips, nil
