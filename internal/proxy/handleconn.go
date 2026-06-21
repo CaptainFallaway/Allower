@@ -6,26 +6,35 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/rs/zerolog"
 )
 
-func (e *Entrypoint) handleConn(client *net.TCPConn) {
+var noopLog = zerolog.Nop()
+
+func (e *Entrypoint) handleConn(client *net.TCPConn, traceSeq uint64, start time.Time) {
 	// net.TCPConn.RemoteAddr() returns a net.Addr, but we know it's a *net.TCPAddr, so we can assert it and extract the IP address.
 	ip := client.RemoteAddr().(*net.TCPAddr).AddrPort().Addr().Unmap() // Unmap IPv4-mapped IPv6 addresses to pure IPv4 for consistent allow matching & logging
 
-	log := e.log.With().Str("remote_ip", ip.String()).Str("target", e.target).Logger()
+	log := noopLog
+	if !e.silence {
+		log = e.log.With().Str("remote_ip", ip.String()).Uint64("trace", traceSeq).Logger()
+	}
 
 	for _, a := range e.allowers {
 		if !a.IsAllowed(ip) {
-			log.Info().Msg("connection denied")
+			Metrics.Record(time.Since(start), true)
+			log.Debug().Msg("connection denied")
 			client.SetLinger(0) // Ensure the connection is closed immediately without waiting for pending data to be sent
 			client.Close()
 			return
 		}
 	}
 
-	log.Info().Msg("connection accepted")
+	Metrics.Record(time.Since(start), false)
+
+	log.Debug().Msg("connection accepted")
 
 	// Dial the target with a timeout context to avoid hanging if the target is unreachable.
 	ctx, cancel := context.WithTimeout(e.ctx, e.dialTimeout)
@@ -55,9 +64,7 @@ func (e *Entrypoint) handleConn(client *net.TCPConn) {
 		log.Warn().Err(err).Msg("failed to configure target keepalive period")
 	}
 
-	log.Debug().Msg("proxying connection")
-
-	e.bidirectionalCopy(log, target.(*net.TCPConn), client)
+	e.bidirectionalCopy(log, targetTCP, client)
 }
 
 func (e *Entrypoint) bidirectionalCopy(log zerolog.Logger, target, client *net.TCPConn) {

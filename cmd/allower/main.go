@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -18,33 +17,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func init() {
-	if pretty, _ := strconv.ParseBool(os.Getenv("LOG_PRETTY")); pretty {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.DateTime})
-	} else {
-		zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	}
-
-	level := os.Getenv("LOG_LEVEL")
-	switch strings.TrimSpace(strings.ToLower(level)) {
-	case "debug":
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	case "info":
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	case "warn":
-		zerolog.SetGlobalLevel(zerolog.WarnLevel)
-	case "error":
-		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
-	default:
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	}
-}
-
 func run(appCtx context.Context) error {
 	env, err := getEnv()
 	if err != nil {
 		return err
 	}
+
+	configureLogging(env.logPretty, env.logLevel)
 
 	ds := ipinfo.New(env.ipinfoToken, env.ipinfoDir, ipinfo.WithLookupRecordPool())
 	go periodicallySyncDataset(appCtx, env.ipinfoSync, ds)
@@ -54,9 +33,15 @@ func run(appCtx context.Context) error {
 		return err
 	}
 
-	entrypoints, err := makeEntrypoints(appCtx, *conf, ds)
+	entrypoints, err := makeEntrypoints(appCtx, *conf, ds, env.logSilence)
 	if err != nil {
 		return err
+	}
+
+	if env.metricsInterval != 0 {
+		log.Info().Msgf("metrics logging every %s", env.metricsInterval)
+		proxy.MetricsEnabled = true
+		go proxy.Metrics.PeriodicallyLog(appCtx, env.metricsInterval)
 	}
 
 	for _, ep := range entrypoints {
@@ -64,17 +49,41 @@ func run(appCtx context.Context) error {
 		defer ep.Close()
 	}
 
-	log.Info().Msgf("%d entrypoints listening...", len(entrypoints))
+	log.Info().Int("count", len(entrypoints)).Msg("entrypoints accepting connections")
 
 	<-appCtx.Done()
 
 	return nil
 }
 
-func makeEntrypoints(appCtx context.Context, conf config.Config, ds *ipinfo.Dataset) ([]*proxy.Entrypoint, error) {
+func configureLogging(pretty bool, level string) {
+	if pretty {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.DateTime})
+	} else {
+		zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	}
+
+	switch strings.TrimSpace(strings.ToLower(level)) {
+	case "trace":
+		zerolog.SetGlobalLevel(zerolog.TraceLevel)
+	case "debug":
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	case "info":
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	case "warn":
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	case "error":
+		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+	default:
+		log.Warn().Msgf("invalid log level %q, defaulting to info", level)
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	}
+}
+
+func makeEntrypoints(appCtx context.Context, conf config.Config, ds *ipinfo.Dataset, logSilence bool) ([]*proxy.Entrypoint, error) {
 	rulesMap := make(map[string]*rule.Rule, len(conf.Rules))
 	for _, r := range conf.Rules {
-		rulesMap[r.Name] = rule.New(r, ds)
+		rulesMap[r.Name] = rule.New(r, ds, logSilence)
 	}
 
 	eps := make([]*proxy.Entrypoint, len(conf.Entrypoints))
@@ -86,7 +95,7 @@ func makeEntrypoints(appCtx context.Context, conf config.Config, ds *ipinfo.Data
 			allowers[j] = rulesMap[r] // we can do this because rules are guaranteed to be defined before entrypoints in the config package
 		}
 
-		eps[i], err = proxy.NewEntrypoint(appCtx, ep, allowers)
+		eps[i], err = proxy.NewEntrypoint(appCtx, ep, allowers, logSilence)
 		if err != nil {
 			return nil, err
 		}
@@ -125,7 +134,9 @@ func newAppContext() context.Context {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go func() {
-		log.Info().Msgf("received signal %q shutting down...", <-c)
+		log.Info().
+			Str("signal", (<-c).String()).
+			Msg("received signal, shutting down...")
 		cancel()
 	}()
 

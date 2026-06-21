@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
+	"sync/atomic"
 	"time"
 
 	"github.com/CaptainFallaway/Allower/internal/config"
@@ -24,25 +25,26 @@ type Entrypoint struct {
 
 	target      string
 	dialTimeout time.Duration
+	keepalive   time.Duration // Tunable OS socket keepalive duration
+	listener    *net.TCPListener
 
-	keepalive time.Duration // Tunable OS socket keepalive duration
-
-	listener *net.TCPListener
-	log      zerolog.Logger
+	log     zerolog.Logger
+	silence bool
 }
 
-func NewEntrypoint(ctx context.Context, ec config.Entrypoint, allowers []Allower) (*Entrypoint, error) {
+func NewEntrypoint(ctx context.Context, ec config.Entrypoint, allowers []Allower, silence bool) (*Entrypoint, error) {
 	e := &Entrypoint{
 		ctx:         ctx,
+		allowers:    allowers,
 		target:      ec.Target,
 		dialTimeout: ec.DialTimeout.Duration,
 		keepalive:   ec.Keepalive.Duration,
-		allowers:    allowers,
+		silence:     silence,
 	}
 
 	lc := new(net.ListenConfig) // Mostly for the context usage, might want to look into SO_REUSEPORT later tho
 
-	e.log = log.With().Str("entrypoint", ec.Name).Logger()
+	e.log = log.With().Str("entrypoint", ec.Name).Str("target", e.target).Logger()
 
 	ln, err := lc.Listen(ctx, "tcp", ec.Addr)
 	if err != nil {
@@ -51,21 +53,25 @@ func NewEntrypoint(ctx context.Context, ec config.Entrypoint, allowers []Allower
 
 	e.listener = ln.(*net.TCPListener)
 
-	e.log.Info().Str("addr", ec.Addr).Str("target", ec.Target).Int("rules", len(e.allowers)).Msg("entrypoint listening")
+	e.log.Info().Str("addr", ec.Addr).Int("rules", len(e.allowers)).Msg("entrypoint listening")
 
 	return e, nil
 }
 
+var seq atomic.Uint64
+
 func (e *Entrypoint) Accept() {
 	for {
 		conn, err := e.listener.AcceptTCP()
+		start := time.Now()
+		traceSeq := seq.Add(1)
 		if errors.Is(err, net.ErrClosed) {
 			return
-		} else if err != nil {
-			log.Error().Err(err).Msg("failed to accept connection")
+		} else if err != nil && !e.silence {
+			log.Error().Err(err).Uint64("trace", traceSeq).Msg("failed to accept connection")
 			continue
 		}
-		go e.handleConn(conn)
+		go e.handleConn(conn, traceSeq, start)
 	}
 }
 

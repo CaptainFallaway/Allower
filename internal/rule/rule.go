@@ -19,7 +19,9 @@ type Lookuper interface {
 }
 
 type Rule struct {
-	allowSet     hashset.Set[netip.Addr]
+	lookuper Lookuper
+	allowSet hashset.Set[netip.Addr]
+
 	blockSet     hashset.Set[netip.Addr]
 	countrySet   hashset.Set[string]
 	continentSet hashset.Set[string]
@@ -27,22 +29,23 @@ type Rule struct {
 	ass    []config.AS
 	ranges []config.Range
 
-	lookuper Lookuper
-	log      zerolog.Logger
+	log     zerolog.Logger
+	silence bool
 }
 
-func New(cr config.Rule, lookuper Lookuper) *Rule {
+func New(cr config.Rule, lookuper Lookuper, silence bool) *Rule {
 	log := log.With().Str("rule", cr.Name).Logger()
 
 	return &Rule{
+		lookuper:     lookuper,
 		allowSet:     newIpSet(cr.Allow),
 		blockSet:     newIpSet(cr.Block),
 		countrySet:   newStringSet(cr.Countries),
 		continentSet: newStringSet(cr.Continents),
 		ass:          cr.ASs,
 		ranges:       cr.Ranges,
-		lookuper:     lookuper,
 		log:          log,
+		silence:      silence,
 	}
 }
 
@@ -94,18 +97,18 @@ var noopLog = zerolog.Nop()
 func (r *Rule) IsAllowed(ip netip.Addr) bool {
 	log := noopLog
 
-	// Avoid making an allocation for the logger if debug logging is not enabled
-	if zerolog.GlobalLevel() == zerolog.DebugLevel {
+	// Avoid making an allocation for the logger if trace logging is not enabled or if silenced
+	if zerolog.GlobalLevel() == zerolog.TraceLevel && !r.silence {
 		log = r.log.With().Str("ip", ip.String()).Logger()
 	}
 
 	if contains(r.allowSet, ip) {
-		log.Debug().Msg("explicitly allowed")
+		log.Trace().Msg("explicitly allowed")
 		return true
 	}
 
 	if contains(r.blockSet, ip) {
-		log.Debug().Msg("explicitly blocked")
+		log.Trace().Msg("explicitly blocked")
 		return false
 	}
 
@@ -113,12 +116,12 @@ func (r *Rule) IsAllowed(ip netip.Addr) bool {
 		switch r.Type {
 		case config.RangeTypeFromTo:
 			if ip.Compare(r.From) >= 0 && ip.Compare(r.To) <= 0 {
-				log.Debug().Msg("within range")
+				log.Trace().Msg("within range")
 				return true
 			}
 		case config.RangeTypePrefix:
 			if r.Prefix.Contains(ip) {
-				log.Debug().Msg("within prefix")
+				log.Trace().Msg("within prefix")
 				return true
 			}
 		}
@@ -130,37 +133,37 @@ func (r *Rule) IsAllowed(ip netip.Addr) bool {
 		defer record.Free()
 
 		if contains(r.countrySet, toLower(record.CountryCode)) {
-			log.Debug().Str("country", record.CountryCode).Msg("country match")
+			log.Trace().Str("country", record.CountryCode).Msg("country match")
 			return true
 		}
 
 		if contains(r.continentSet, toLower(record.ContinentCode)) {
-			log.Debug().Str("continent", record.ContinentCode).Msg("continent match")
+			log.Trace().Str("continent", record.ContinentCode).Msg("continent match")
 			return true
 		}
 
 		for _, as := range r.ass {
 			if as.Number != "" && as.Number == record.AsNumber {
-				log.Debug().Msg("as number match")
+				log.Trace().Msg("as number match")
 				return true
 			}
 			if as.Domain != "" && as.Domain == record.ASDomain {
-				log.Debug().Msg("as domain match")
+				log.Trace().Msg("as domain match")
 				return true
 			}
 			if as.Name != "" && strings.Contains(toLower(record.ASName), toLower(as.Name)) {
-				log.Debug().Str("contained", as.Name).Msg("as name match")
+				log.Trace().Str("contained", as.Name).Msg("as name match")
 				return true
 			}
 		}
 	} else if errors.Is(err, ipinfo.ErrAddrIsPrivate) {
-		log.Debug().Msg("address is private")
+		log.Trace().Msg("address is private")
 	} else {
 		log.Warn().Err(err).Msg("failed to lookup address")
 	}
 
 	if record != nil {
-		log.Debug().
+		log.Trace().
 			Str("country", record.CountryCode).
 			Str("continent", record.ContinentCode).
 			Str("as", record.AsNumber).

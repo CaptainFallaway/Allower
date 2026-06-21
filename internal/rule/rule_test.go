@@ -278,7 +278,7 @@ func TestIsAllowed(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := rule.New(tt.rule, ds)
+			r := rule.New(tt.rule, ds, false)
 			got := r.IsAllowed(tt.ip)
 			if got != tt.want {
 				t.Errorf("IsAllowed(%v) = %v, want %v", tt.ip, got, tt.want)
@@ -387,7 +387,7 @@ func BenchmarkIsAllowed(b *testing.B) {
 	for _, tt := range tests {
 		tt := tt
 		b.Run(tt.name, func(b *testing.B) {
-			r := rule.New(tt.rule, ds)
+			r := rule.New(tt.rule, ds, false)
 			b.ReportAllocs()
 			b.ResetTimer()
 
