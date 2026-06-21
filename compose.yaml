@@ -1,8 +1,11 @@
 services:
     allower:
         image: allower:latest
+        container_name: allower
         network_mode: host
         environment:
             IPINFO_TOKEN: ${IPINFO_TOKEN:-}
+            PRETTY_LOGGING: true
+            DEBUG: true
         volumes:
             - ./test-data:/persist
