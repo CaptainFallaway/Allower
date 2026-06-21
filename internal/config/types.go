@@ -2,6 +2,9 @@ package config
 
 import (
 	"net/netip"
+	"time"
+
+	"go.yaml.in/yaml/v4"
 )
 
 type Config struct {
@@ -10,10 +13,29 @@ type Config struct {
 }
 
 type Entrypoint struct {
-	Name   string   `yaml:"name"`
-	Addr   string   `yaml:"addr"`
-	Target string   `yaml:"target"`
-	Rules  []string `yaml:"rules"`
+	Name        string   `yaml:"name"`
+	Addr        string   `yaml:"addr"`
+	Keepalive   Duration `yaml:"keepalive"`
+	Target      string   `yaml:"target"`
+	DialTimeout Duration `yaml:"dial_timeout"`
+	Rules       []string `yaml:"rules"`
+}
+
+type Duration struct {
+	time.Duration
+}
+
+func (d *Duration) UnmarshalYAML(node *yaml.Node) error {
+	var s string
+	if err := node.Decode(&s); err != nil {
+		return err
+	}
+	v, err := time.ParseDuration(s)
+	if err != nil {
+		return err
+	}
+	d.Duration = v
+	return nil
 }
 
 type Rule struct {
@@ -21,9 +43,9 @@ type Rule struct {
 	Block      []netip.Addr `yaml:"block"`
 	Allow      []netip.Addr `yaml:"allow"`
 	Ranges     []Range      `yaml:"ranges"`
-	ASs        []AS         `yaml:"ass"`
 	Countries  []string     `yaml:"countries"`
 	Continents []string     `yaml:"continents"`
+	ASs        []AS         `yaml:"ass"`
 }
 
 type RangeType int

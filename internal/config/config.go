@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/CaptainFallaway/Allower/pkg/hashset"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -55,15 +56,24 @@ func validateConfig(c *Config) error {
 		}
 	}
 
-	// Then let's check so all rules used by entrypoints are defined
-	ruleMap := make(map[string]struct{})
+	ruleSet := hashset.New[string]()
 	for _, rule := range c.Rules {
-		ruleMap[rule.Name] = struct{}{}
+		ruleSet.Add(rule.Name)
 	}
 
 	for _, entrypoint := range c.Entrypoints {
+		// Set keepalive and dial timeout to 30s if not set, as this is a reasonable default for most use cases
+		if entrypoint.Keepalive.Duration == 0 {
+			entrypoint.Keepalive.Duration = 30
+		}
+
+		if entrypoint.DialTimeout.Duration == 0 {
+			entrypoint.DialTimeout.Duration = 30
+		}
+
+		// Check so all rules used by entrypoints are defined
 		for _, ruleName := range entrypoint.Rules {
-			if _, ok := ruleMap[ruleName]; !ok {
+			if !ruleSet.Contains(ruleName) {
 				errs = append(errs, fmt.Errorf("entrypoint %q references undefined rule %q", entrypoint.Name, ruleName))
 			}
 		}
