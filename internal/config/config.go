@@ -52,6 +52,7 @@ func validateConfig(c *Config) error {
 		if _, _, err := net.SplitHostPort(entrypoint.Addr); err != nil {
 			errs = append(errs, fmt.Errorf("invalid entrypoint addr %q in %q: %w", entrypoint.Addr, entrypoint.Name, err))
 		}
+
 		if _, _, err := net.SplitHostPort(entrypoint.Target); err != nil {
 			errs = append(errs, fmt.Errorf("invalid entrypoint target %q in %q: %w", entrypoint.Target, entrypoint.Name, err))
 		}
@@ -93,7 +94,9 @@ func validateConfig(c *Config) error {
 		}
 
 		// Check the range rules, either from and to must be defined or the range is only a prefix
-		for i, r := range rule.Ranges {
+		for i := range rule.Ranges {
+			r := &rule.Ranges[i]
+
 			if !r.From.IsValid() && !r.To.IsValid() {
 				if !r.Prefix.IsValid() {
 					errs = append(errs, fmt.Errorf("rule %q invalid range no. %d for: either prefix or from, to must be defined for a range", rule.Name, i))
@@ -101,6 +104,7 @@ func validateConfig(c *Config) error {
 				r.Type = RangeTypePrefix
 				continue
 			}
+
 			if r.From.IsValid() && r.To.IsValid() {
 				if r.Prefix.IsValid() {
 					errs = append(errs, fmt.Errorf("rule %q invalid range no. %d: both prefix and from, to cannot be defined for a range", rule.Name, i))
@@ -108,6 +112,7 @@ func validateConfig(c *Config) error {
 				r.Type = RangeTypeFromTo
 				continue
 			}
+
 			errs = append(errs, fmt.Errorf("rule %q invalid range no. %d: either from, to or a prefix must be defined", rule.Name, i))
 		}
 	}
