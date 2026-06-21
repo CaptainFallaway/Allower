@@ -22,13 +22,17 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o ./bin/allower -ldflags="-w -s" ./cmd/al
 
 FROM scratch AS final
 
+# Add the root directory to the PATH so that the binaries can be found without specifying the full path.
+ENV PATH="/:$PATH"
+
 COPY --from=lookup_build /app/bin/lookup /lookup
 COPY --from=allower_build /app/bin/allower /allower
 
 COPY --from=deps /etc/ssl/certs/ca-certificates.crt /certs/ca-certificates.crt
 ENV SSL_CERT_FILE=/certs/ca-certificates.crt
 
-WORKDIR /persist # This is where the config and data will be stored. It should be mounted as a volume.
+# This is where the config and data will be stored. It should be mounted as a volume.
+WORKDIR /persist
 WORKDIR /
 
 VOLUME /persist
@@ -39,4 +43,4 @@ ENV PRETTY_LOGGING="false"
 ENV DEBUG="false"
 ENV CONFIG_PATH="/persist/config.yaml"
 
-ENTRYPOINT ["/allower"]
+ENTRYPOINT ["allower"]
