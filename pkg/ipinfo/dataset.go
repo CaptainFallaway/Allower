@@ -113,13 +113,13 @@ func (d *managedDataset) getLocalSum() (string, error) {
 func (d *managedDataset) getRemoteSum(ctx context.Context) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", datasetChecksumURL, nil)
 	if err != nil {
-		fmt.Errorf("failed to create request: %w", err)
+		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+d.token)
 
 	resp, err := d.client.Do(req)
 	if err != nil {
-		fmt.Errorf("failed to send request: %w", err)
+		return "", fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
 
