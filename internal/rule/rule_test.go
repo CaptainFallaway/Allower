@@ -10,6 +10,7 @@ import (
 	"github.com/CaptainFallaway/Allower/internal/config"
 	"github.com/CaptainFallaway/Allower/internal/rule"
 	"github.com/CaptainFallaway/Allower/pkg/ipinfo"
+	"github.com/rs/zerolog"
 )
 
 // helpers
@@ -21,7 +22,7 @@ func fromTo(from, to string) config.Range {
 	return config.Range{Type: config.RangeTypeFromTo, From: mustAddr(from), To: mustAddr(to)}
 }
 
-func cidr(pfx string) config.Range {
+func prefix(pfx string) config.Range {
 	return config.Range{Type: config.RangeTypePrefix, Prefix: mustPfx(pfx)}
 }
 
@@ -188,20 +189,20 @@ func TestIsAllowed(t *testing.T) {
 		// ── prefix ranges ────────────────────────────────────────────────────
 		{
 			name: "prefix range: IP inside CIDR is allowed",
-			rule: config.Rule{Ranges: []config.Range{cidr("85.24.194.0/25")}},
+			rule: config.Rule{Ranges: []config.Range{prefix("85.24.194.0/25")}},
 			ip:   mustAddr("85.24.194.40"),
 			want: true,
 		},
 		{
 			name: "prefix range: IP outside CIDR is denied",
-			rule: config.Rule{Ranges: []config.Range{cidr("85.24.194.0/25")}},
+			rule: config.Rule{Ranges: []config.Range{prefix("85.24.194.0/25")}},
 			ip:   mustAddr("85.24.194.200"),
 			want: false,
 		},
 		{
 			// /25 covers .0–.127; .128 falls in the second half
 			name: "prefix range: IP in adjacent subnet is denied",
-			rule: config.Rule{Ranges: []config.Range{cidr("85.24.194.0/25")}},
+			rule: config.Rule{Ranges: []config.Range{prefix("85.24.194.0/25")}},
 			ip:   mustAddr("85.24.194.128"),
 			want: false,
 		},
@@ -212,7 +213,7 @@ func TestIsAllowed(t *testing.T) {
 			rule: config.Rule{
 				Ranges: []config.Range{
 					fromTo("10.0.0.1", "10.0.0.5"),
-					cidr("192.168.1.0/24"),
+					prefix("192.168.1.0/24"),
 				},
 			},
 			ip:   mustAddr("192.168.1.50"),
@@ -265,7 +266,7 @@ func TestIsAllowed(t *testing.T) {
 				Block:      []netip.Addr{mustAddr("8.8.8.8")},
 				Countries:  []string{"CN"},
 				Continents: []string{"AS"},
-				Ranges:     []config.Range{cidr("10.0.0.0/8")},
+				Ranges:     []config.Range{prefix("10.0.0.0/8")},
 				ASs:        []config.AS{{Number: "AS24429"}},
 			},
 			ip:   mustAddr("1.2.3.4"),
@@ -281,6 +282,117 @@ func TestIsAllowed(t *testing.T) {
 			got := r.IsAllowed(tt.ip)
 			if got != tt.want {
 				t.Errorf("IsAllowed(%v) = %v, want %v", tt.ip, got, tt.want)
+			}
+		})
+	}
+}
+
+func BenchmarkIsAllowed(b *testing.B) {
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
+	db := LoadAndGetDB(b)
+
+	tests := []struct {
+		name string
+		rule config.Rule
+		ip   netip.Addr
+	}{
+		{
+			name: "allow",
+			rule: config.Rule{
+				Name:  "allow",
+				Allow: []netip.Addr{mustAddr("1.2.3.4")},
+			},
+			ip: mustAddr("1.2.3.4"),
+		},
+		{
+			name: "block",
+			rule: config.Rule{
+				Name:  "block",
+				Block: []netip.Addr{mustAddr("1.2.3.4")},
+			},
+			ip: mustAddr("1.2.3.4"),
+		},
+		{
+			name: "ranges/from-to",
+			rule: config.Rule{
+				Name:   "ranges/from-to",
+				Ranges: []config.Range{fromTo("85.24.194.40", "85.24.194.42")},
+			},
+			ip: mustAddr("85.24.194.41"),
+		},
+		{
+			name: "ranges/prefix",
+			rule: config.Rule{
+				Name:   "ranges/prefix",
+				Ranges: []config.Range{prefix("85.24.194.0/25")},
+			},
+			ip: mustAddr("85.24.194.40"),
+		},
+		{
+			name: "geo/country",
+			rule: config.Rule{
+				Name:      "geo/country",
+				Countries: []string{"SE"},
+			},
+			ip: mustAddr("85.24.194.40"),
+		},
+		{
+			name: "geo/continent",
+			rule: config.Rule{
+				Name:       "geo/continent",
+				Continents: []string{"EU"},
+			},
+			ip: mustAddr("85.24.194.40"),
+		},
+		{
+			name: "as/number",
+			rule: config.Rule{
+				Name: "as/number",
+				ASs:  []config.AS{{Number: "AS45102"}},
+			},
+			ip: mustAddr("47.88.0.1"),
+		},
+		{
+			name: "as/domain",
+			rule: config.Rule{
+				Name: "as/domain",
+				ASs:  []config.AS{{Domain: "alibabagroup.com"}},
+			},
+			ip: mustAddr("47.88.0.1"),
+		},
+		{
+			name: "as/name",
+			rule: config.Rule{
+				Name: "as/name",
+				ASs:  []config.AS{{Name: "Alibaba"}},
+			},
+			ip: mustAddr("47.88.0.1"),
+		},
+		{
+			name: "deny/rich",
+			rule: config.Rule{
+				Name:       "deny/rich",
+				Allow:      []netip.Addr{mustAddr("9.9.9.9")},
+				Block:      []netip.Addr{mustAddr("8.8.8.8")},
+				Countries:  []string{"CN"},
+				Continents: []string{"AS"},
+				Ranges:     []config.Range{prefix("10.0.0.0/8")},
+				ASs:        []config.AS{{Number: "AS24429"}},
+			},
+			ip: mustAddr("1.2.3.4"),
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		b.Run(tt.name, func(b *testing.B) {
+			r := rule.New(tt.rule, db)
+			b.ReportAllocs()
+			b.ResetTimer()
+
+			for i := 0; i < b.N; i++ {
+				_ = r.IsAllowed(tt.ip)
 			}
 		})
 	}

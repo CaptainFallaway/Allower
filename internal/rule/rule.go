@@ -89,8 +89,15 @@ func toLower(str string) string {
 	return unsafe.String(&b[0], lenStr)
 }
 
+var noopLog = zerolog.Nop()
+
 func (r *Rule) IsAllowed(ip netip.Addr) bool {
-	log := r.log.With().Str("ip", ip.String()).Logger()
+	log := noopLog
+
+	// Avoid making an allocation for the logger if debug logging is not enabled
+	if zerolog.GlobalLevel() == zerolog.DebugLevel {
+		log = r.log.With().Str("ip", ip.String()).Logger()
+	}
 
 	if contains(r.allowSet, ip) {
 		log.Debug().Msg("explicitly allowed")
