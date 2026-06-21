@@ -4,6 +4,9 @@ set dotenv-override := true
 run cmd *ARGS:
     @go run ./cmd/{{ cmd }}/ {{ ARGS }}
 
+docker:
+    @docker build -t allower:latest . --load
+
 build cmd:
     @echo "Building smol binary for {{ cmd }}..."
     go build -o ./bin/{{ cmd }} -ldflags="-w -s" ./cmd/{{ cmd }}/
@@ -37,7 +40,7 @@ clear:
 
 [arg('type', pattern='cpu|mem|block|mutex')]
 profile folder pkg type run=".":
-    go test -v -run="-" -bench="{{ run }}" -{{ type }}profile={{ type }}.out ./{{folder}}/{{ pkg }}/
+    go test -v -run="-" -bench="{{ run }}" -{{ type }}profile={{ type }}.out ./{{ folder }}/{{ pkg }}/
 
 [arg('type', pattern='cpu|mem|block|mutex')]
 pprof type:

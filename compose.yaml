@@ -1,0 +1,8 @@
+services:
+    allower:
+        image: allower:latest
+        environment:
+            IPINFO_TOKEN: ${IPINFO_TOKEN:-}
+        volumes:
+            - ./test-data:/data
+            - ./config.yaml:/config.yaml

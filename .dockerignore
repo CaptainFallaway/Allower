@@ -1,0 +1,6 @@
+*.yaml
+*.md
+justfile
+.env
+.env.example
+bin
