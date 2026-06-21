@@ -48,8 +48,8 @@ rules: []
 	if got := cfg.Entrypoints[0].Keepalive.Duration; got != 30*time.Second {
 		t.Fatalf("default keepalive = %v, want 30s", got)
 	}
-	if got := cfg.Entrypoints[0].DialTimeout.Duration; got != 30*time.Second {
-		t.Fatalf("default dial_timeout = %v, want 30s", got)
+	if got := cfg.Entrypoints[0].DialTimeout.Duration; got != 10*time.Second {
+		t.Fatalf("default dial_timeout = %v, want 10s", got)
 	}
 }
 

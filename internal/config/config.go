@@ -72,7 +72,7 @@ func validateConfig(c *Config) error {
 		}
 
 		if entrypoint.DialTimeout.Duration == 0 {
-			entrypoint.DialTimeout.Duration = time.Second * 30
+			entrypoint.DialTimeout.Duration = time.Second * 10
 		}
 
 		// Check so all rules used by entrypoints are defined
