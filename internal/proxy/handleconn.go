@@ -14,7 +14,7 @@ func (e *Entrypoint) handleConn(client *net.TCPConn) {
 	defer client.Close()
 
 	// net.TCPConn.RemoteAddr() returns a net.Addr, but we know it's a *net.TCPAddr, so we can assert it and extract the IP address.
-	ip := client.RemoteAddr().(*net.TCPAddr).AddrPort().Addr()
+	ip := client.RemoteAddr().(*net.TCPAddr).AddrPort().Addr().Unmap() // Unmap IPv4-mapped IPv6 addresses to pure IPv4 for consistent allow matching & logging
 
 	log := e.log.With().Str("remote_ip", ip.String()).Str("target", e.target).Logger()
 
