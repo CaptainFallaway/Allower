@@ -5,7 +5,7 @@ services:
         network_mode: host
         environment:
             IPINFO_TOKEN: ${IPINFO_TOKEN:-}
-            PRETTY_LOGGING: true
-            DEBUG: true
+            LOG_PRETTY: false
+            LOG_LEVEL: "info"
         volumes:
             - ./test-data:/persist

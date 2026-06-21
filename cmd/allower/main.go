@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -18,15 +19,23 @@ import (
 )
 
 func init() {
-	if pretty, _ := strconv.ParseBool(os.Getenv("PRETTY_LOGGING")); pretty {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.DateTime})
+	if pretty, _ := strconv.ParseBool(os.Getenv("LOG_PRETTY")); pretty {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.DateTime})
 	} else {
 		zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	}
 
-	if debug, _ := strconv.ParseBool(os.Getenv("DEBUG")); debug {
+	level := os.Getenv("LOG_LEVEL")
+	switch strings.TrimSpace(strings.ToLower(level)) {
+	case "debug":
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	} else {
+	case "info":
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	case "warn":
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	case "error":
+		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+	default:
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
 }

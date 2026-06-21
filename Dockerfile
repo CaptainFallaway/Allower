@@ -39,8 +39,8 @@ VOLUME /persist
 
 ENV IPINFO_DIR="/persist"
 ENV IPINFO_SYNC="12h"
-ENV PRETTY_LOGGING="false"
-ENV DEBUG="false"
+ENV LOG_PRETTY="false"
+ENV LOG_LEVEL="info"
 ENV CONFIG_PATH="/persist/config.yaml"
 
 ENTRYPOINT ["allower"]
