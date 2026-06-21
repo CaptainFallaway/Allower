@@ -8,7 +8,14 @@ import (
 	"github.com/CaptainFallaway/Allower/internal/config"
 	"github.com/CaptainFallaway/Allower/pkg/hashset"
 	"github.com/CaptainFallaway/Allower/pkg/ipinfo"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
+
+// Lookup interface abstracts the IP lookup dependency for testability.
+type Lookuper interface {
+	Lookup(addr netip.Addr) (*ipinfo.Record, error)
+}
 
 type Rule struct {
 	allowSet     hashset.Set[netip.Addr]
@@ -18,9 +25,14 @@ type Rule struct {
 
 	ass    []config.AS
 	ranges []config.Range
+
+	db  Lookuper
+	log zerolog.Logger
 }
 
-func New(cr *config.Rule) *Rule {
+func New(cr config.Rule, db Lookuper) *Rule {
+	log := log.With().Str("rule", cr.Name).Logger()
+
 	return &Rule{
 		allowSet:     newIpSet(cr.Allow),
 		blockSet:     newIpSet(cr.Block),
@@ -28,6 +40,8 @@ func New(cr *config.Rule) *Rule {
 		continentSet: newStringSet(cr.Continents),
 		ass:          cr.ASs,
 		ranges:       cr.Ranges,
+		db:           db,
+		log:          log,
 	}
 }
 
@@ -74,21 +88,13 @@ func toLower(str string) string {
 	return unsafe.String(&b[0], lenStr)
 }
 
-func (r *Rule) IsAllowed(ip netip.Addr, record *ipinfo.Record) bool {
+func (r *Rule) IsAllowed(ip netip.Addr) bool {
 	if contains(r.allowSet, ip) {
 		return true
 	}
 
 	if contains(r.blockSet, ip) {
 		return false
-	}
-
-	if contains(r.countrySet, toLower(record.CountryCode)) {
-		return true
-	}
-
-	if contains(r.continentSet, toLower(record.ContinentCode)) {
-		return true
 	}
 
 	for _, r := range r.ranges {
@@ -104,16 +110,34 @@ func (r *Rule) IsAllowed(ip netip.Addr, record *ipinfo.Record) bool {
 		}
 	}
 
-	for _, as := range r.ass {
-		if as.Number != "" && as.Number == record.AsNumber {
+	// Check if private before lookup
+	if ip.IsPrivate() {
+		return false
+	}
+
+	record, err := r.db.Lookup(ip)
+	if err == nil {
+		if contains(r.countrySet, toLower(record.Country)) {
 			return true
 		}
-		if as.Domain != "" && as.Domain == record.ASDomain {
+
+		if contains(r.continentSet, toLower(record.Continent)) {
 			return true
 		}
-		if as.Name != "" && strings.Contains(toLower(record.ASName), toLower(as.Name)) {
-			return true
+
+		for _, as := range r.ass {
+			if as.Number != "" && as.Number == record.AsNumber {
+				return true
+			}
+			if as.Domain != "" && as.Domain == record.ASDomain {
+				return true
+			}
+			if as.Name != "" && strings.Contains(toLower(record.ASName), toLower(as.Name)) {
+				return true
+			}
 		}
+	} else {
+		r.log.Warn().Str("ip", ip.String()).Err(err).Msg("failed to lookup ip address")
 	}
 
 	return false
