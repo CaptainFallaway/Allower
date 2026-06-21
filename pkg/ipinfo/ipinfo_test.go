@@ -1,7 +1,6 @@
 package ipinfo_test
 
 import (
-	"github.com/CaptainFallaway/Allower/pkg/ipinfo"
 	"context"
 	"fmt"
 	"math/rand/v2"
@@ -9,6 +8,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/CaptainFallaway/Allower/pkg/ipinfo"
 )
 
 var db *ipinfo.DB
@@ -56,7 +57,6 @@ func BenchmarkLookup(b *testing.B) {
 		}
 	}
 }
-
 
 // Generates a random public IPv4 address (avoids private/reserved ranges)
 func randomPublicIPv4(rng *rand.Rand) netip.Addr {
