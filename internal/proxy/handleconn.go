@@ -76,7 +76,7 @@ func (e *Entrypoint) bidirectionalCopy(log zerolog.Logger, target, client *net.T
 
 		if _, err := io.Copy(dst, src); err != nil {
 			if !errors.Is(err, net.ErrClosed) {
-				log.Error().
+				log.Warn().
 					Err(err).
 					Str("direction", direction).
 					Msg("proxy copy failed")
@@ -86,7 +86,7 @@ func (e *Entrypoint) bidirectionalCopy(log zerolog.Logger, target, client *net.T
 		}
 
 		if err := dst.CloseWrite(); err != nil && !errors.Is(err, net.ErrClosed) {
-			log.Error().
+			log.Warn().
 				Err(err).
 				Str("direction", direction).
 				Msg("failed to half-close proxy connection")
