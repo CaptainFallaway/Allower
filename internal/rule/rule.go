@@ -1,6 +1,7 @@
 package rule
 
 import (
+	"errors"
 	"net/netip"
 	"strings"
 	"unsafe"
@@ -110,13 +111,11 @@ func (r *Rule) IsAllowed(ip netip.Addr) bool {
 		}
 	}
 
-	// Check if private before lookup
-	if ip.IsPrivate() {
-		return false
-	}
-
+	// If the IP is not explicitly allowed or blocked, we check the IP info for country, continent, and AS matches.
 	record, err := r.db.Lookup(ip)
 	if err == nil {
+		defer record.Free()
+
 		if contains(r.countrySet, toLower(record.CountryCode)) {
 			return true
 		}
@@ -136,6 +135,8 @@ func (r *Rule) IsAllowed(ip netip.Addr) bool {
 				return true
 			}
 		}
+	} else if errors.Is(err, &ipinfo.ErrAddrIsPrivate{}) {
+		r.log.Debug().Str("ip", ip.String()).Msg("ip address is private")
 	} else {
 		r.log.Warn().Str("ip", ip.String()).Err(err).Msg("failed to lookup ip address")
 	}
