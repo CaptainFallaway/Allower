@@ -1,4 +1,4 @@
-# Reverser
+# Allower
 
 ## Config
 
