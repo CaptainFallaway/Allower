@@ -32,7 +32,7 @@ test folder pkg run=".":
 bench folder pkg run=".":
     go test -v -run {{ run }} -bench . ./{{ folder }}/{{ pkg }}/
 
-clear:
+clean:
     @echo "Removing bin, *.test, *.out"
     @rm -rf bin
     @rm *.test 2> /dev/null || true
