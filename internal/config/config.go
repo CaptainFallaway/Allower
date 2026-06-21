@@ -87,7 +87,7 @@ func validateConfig(c *Config) error {
 
 		// Check the AS numbers, they should be in the format AS12345
 		for i, as := range rule.ASs {
-			if strings.HasPrefix(as.Number, "AS") {
+			if !strings.HasPrefix(as.Number, "AS") {
 				errs = append(errs, fmt.Errorf("rule %q invalid AS no. %d: AS number must be in the format AS12345", rule.Name, i))
 			}
 		}
