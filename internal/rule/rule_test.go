@@ -26,24 +26,24 @@ func prefix(pfx string) config.Range {
 	return config.Range{Type: config.RangeTypePrefix, Prefix: mustPfx(pfx)}
 }
 
-var db *ipinfo.DB
+var ds *ipinfo.Dataset
 
 type Fataler interface {
 	Fatal(args ...any)
 	Fatalf(format string, args ...any)
 }
 
-func LoadAndGetDB(t Fataler) *ipinfo.DB {
-	if db != nil {
-		return db
+func LoadAndGetDataset(t Fataler) *ipinfo.Dataset {
+	if ds != nil {
+		return ds
 	}
 
 	token := os.Getenv("IPINFO_TOKEN")
-	db = ipinfo.New(token, "../../test-data")
+	ds = ipinfo.New(token, "../../test-data")
 
 	// if token is set, attempt to sync the dataset to get the latest data; if not, just try to load the existing dataset from disk
 	if token != "" {
-		updated, err := db.Sync(context.Background())
+		updated, err := ds.Sync(context.Background())
 		if err != nil {
 			t.Fatalf("failed to sync dataset: %v", err)
 		}
@@ -52,12 +52,12 @@ func LoadAndGetDB(t Fataler) *ipinfo.DB {
 		}
 	}
 
-	err := db.Load()
+	err := ds.Load()
 	if err != nil {
 		t.Fatalf("failed to load dataset: %v", err)
 	}
 
-	return db
+	return ds
 }
 
 func TestIsAllowed(t *testing.T) {
@@ -274,11 +274,11 @@ func TestIsAllowed(t *testing.T) {
 		},
 	}
 
-	db := LoadAndGetDB(t)
+	ds := LoadAndGetDataset(t)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := rule.New(tt.rule, db)
+			r := rule.New(tt.rule, ds)
 			got := r.IsAllowed(tt.ip)
 			if got != tt.want {
 				t.Errorf("IsAllowed(%v) = %v, want %v", tt.ip, got, tt.want)
@@ -290,7 +290,7 @@ func TestIsAllowed(t *testing.T) {
 func BenchmarkIsAllowed(b *testing.B) {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel) // Ignore debug logs for best performance
 
-	db := LoadAndGetDB(b)
+	ds := LoadAndGetDataset(b)
 
 	tests := []struct {
 		name string
@@ -387,7 +387,7 @@ func BenchmarkIsAllowed(b *testing.B) {
 	for _, tt := range tests {
 		tt := tt
 		b.Run(tt.name, func(b *testing.B) {
-			r := rule.New(tt.rule, db)
+			r := rule.New(tt.rule, ds)
 			b.ReportAllocs()
 			b.ResetTimer()
 

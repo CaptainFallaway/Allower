@@ -21,7 +21,7 @@ const datasetDownloadURL = "https://ipinfo.io/data/" + datasetName
 const datasetChecksumURL = "https://ipinfo.io/data/" + datasetName + "/checksums"
 
 // managedDataset manages the local copy of the IP geolocation dataset.
-// It checks the remote checksum and downloads the dataset if it has changed since the last sync.
+// It has methods to check for updates, download the dataset, and create a reader for it.
 type managedDataset struct {
 	datasetPath string
 	token       string
@@ -61,7 +61,7 @@ func (d *managedDataset) Sync(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-func (d *managedDataset) NewMmdbReader() (*maxminddb.Reader, error) {
+func (d *managedDataset) newMmdbReader() (*maxminddb.Reader, error) {
 	file, err := os.Open(d.datasetPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open dataset file: %w", err)

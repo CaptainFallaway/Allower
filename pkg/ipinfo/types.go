@@ -15,7 +15,7 @@ type Record struct {
 }
 
 // Free releases the Record after you're done using it. If the Record was
-// allocated from the DB's LookupRecordPool, it is reset and returned to the
+// allocated from the Datasets LookupRecordPool, it is reset and returned to the
 // pool. If it was not pooled, Free does nothing. (optional to call)
 func (r *Record) Free() {
 	if r == nil || r.pool == nil {

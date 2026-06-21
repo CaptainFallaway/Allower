@@ -46,15 +46,15 @@ func run(appCtx context.Context) error {
 		return err
 	}
 
-	db := ipinfo.New(env.ipinfoToken, env.ipinfoDir, ipinfo.WithLookupRecordPool())
-	go periodicallySyncDB(appCtx, env.ipinfoSync, db)
+	ds := ipinfo.New(env.ipinfoToken, env.ipinfoDir, ipinfo.WithLookupRecordPool())
+	go periodicallySyncDataset(appCtx, env.ipinfoSync, ds)
 
 	conf, err := config.Load(env.configPath)
 	if err != nil {
 		return err
 	}
 
-	entrypoints, err := makeEntrypoints(appCtx, *conf, db)
+	entrypoints, err := makeEntrypoints(appCtx, *conf, ds)
 	if err != nil {
 		return err
 	}
@@ -71,10 +71,10 @@ func run(appCtx context.Context) error {
 	return nil
 }
 
-func makeEntrypoints(appCtx context.Context, conf config.Config, db *ipinfo.DB) ([]*proxy.Entrypoint, error) {
+func makeEntrypoints(appCtx context.Context, conf config.Config, ds *ipinfo.Dataset) ([]*proxy.Entrypoint, error) {
 	rulesMap := make(map[string]*rule.Rule, len(conf.Rules))
 	for _, r := range conf.Rules {
-		rulesMap[r.Name] = rule.New(r, db)
+		rulesMap[r.Name] = rule.New(r, ds)
 	}
 
 	eps := make([]*proxy.Entrypoint, len(conf.Entrypoints))
@@ -95,17 +95,17 @@ func makeEntrypoints(appCtx context.Context, conf config.Config, db *ipinfo.DB) 
 	return eps, nil
 }
 
-func periodicallySyncDB(appCtx context.Context, duration time.Duration, db *ipinfo.DB) {
+func periodicallySyncDataset(appCtx context.Context, duration time.Duration, ds *ipinfo.Dataset) {
 	for {
 		// Might want to implement some sort of backoff system, this means that if the dataset fails at startup, we'll reject all ipinfo based traffic
-		updated, err := db.Sync(appCtx)
+		updated, err := ds.Sync(appCtx)
 		if err != nil {
 			log.Error().Err(err).Msg("error syncing ipinfo dataset")
 		} else if updated {
 			log.Info().Msg("ipinfo dataset updated")
 		}
 
-		err = db.Load()
+		err = ds.Load()
 		if err != nil {
 			log.Error().Err(err).Msg("error loading ipinfo dataset")
 		}

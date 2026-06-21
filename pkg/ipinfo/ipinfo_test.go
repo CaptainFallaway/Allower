@@ -12,24 +12,24 @@ import (
 	"github.com/CaptainFallaway/Allower/pkg/ipinfo"
 )
 
-var db *ipinfo.DB
+var ds *ipinfo.Dataset
 
 type Fataler interface {
 	Fatal(args ...any)
 	Fatalf(format string, args ...any)
 }
 
-func LoadAndGetDB(t Fataler) *ipinfo.DB {
-	if db != nil {
-		return db
+func LoadAndGetDataset(t Fataler) *ipinfo.Dataset {
+	if ds != nil {
+		return ds
 	}
 
 	token := os.Getenv("IPINFO_TOKEN")
-	db = ipinfo.New(token, "../../test-data")
+	ds = ipinfo.New(token, "../../test-data")
 
 	// if token is set, attempt to sync the dataset to get the latest data; if not, just try to load the existing dataset from disk
 	if token != "" {
-		updated, err := db.Sync(context.Background())
+		updated, err := ds.Sync(context.Background())
 		if err != nil {
 			t.Fatalf("failed to sync dataset: %v", err)
 		}
@@ -38,16 +38,16 @@ func LoadAndGetDB(t Fataler) *ipinfo.DB {
 		}
 	}
 
-	err := db.Load()
+	err := ds.Load()
 	if err != nil {
 		t.Fatalf("failed to load dataset: %v", err)
 	}
 
-	return db
+	return ds
 }
 
 func BenchmarkLookupByRatio(b *testing.B) {
-	db := LoadAndGetDB(b)
+	ds := LoadAndGetDataset(b)
 
 	ratios := []struct {
 		name    string
@@ -66,7 +66,7 @@ func BenchmarkLookupByRatio(b *testing.B) {
 		for _, r := range ratios {
 			ips := generateRandomPublicIPs(1024, r.ipv4Pct, 42)
 			ip = ips[i&1023]
-			_, err := db.Lookup(ip)
+			_, err := ds.Lookup(ip)
 			if err != nil && !errors.Is(err, ipinfo.ErrNotFound) {
 				b.Fatalf("failed to lookup IP address %q: %v", ip, err)
 			}
@@ -83,7 +83,7 @@ func BenchmarkLookupByRatio(b *testing.B) {
 
 			for i := 0; i < bb.N; i++ {
 				ip = ips[i&1023]
-				_, err := db.Lookup(ip)
+				_, err := ds.Lookup(ip)
 				if err != nil && !errors.Is(err, ipinfo.ErrNotFound) {
 					bb.Fatalf("failed to lookup IP address %q: %v", ip, err)
 				}

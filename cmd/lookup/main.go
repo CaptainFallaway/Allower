@@ -34,10 +34,10 @@ func run(doSync bool) error {
 		return err
 	}
 
-	db := ipinfo.New(token, dir)
+	ds := ipinfo.New(token, dir)
 
 	if doSync {
-		updated, err := db.Sync(context.Background())
+		updated, err := ds.Sync(context.Background())
 		if err != nil {
 			return fmt.Errorf("failed to sync dataset: %v", err)
 		}
@@ -48,7 +48,7 @@ func run(doSync bool) error {
 		}
 	}
 
-	err = db.Load()
+	err = ds.Load()
 	if err != nil {
 		return fmt.Errorf("failed to load dataset: %v", err)
 	}
@@ -57,7 +57,7 @@ func run(doSync bool) error {
 
 	count := 0
 	for _, ip := range ips {
-		record, err := db.Lookup(ip)
+		record, err := ds.Lookup(ip)
 		if err != nil {
 			fmt.Printf("\nFailed to lookup IP %s: %v\n", ip, err)
 			continue
