@@ -135,10 +135,10 @@ func (r *Rule) IsAllowed(ip netip.Addr) bool {
 				return true
 			}
 		}
-	} else if errors.Is(err, &ipinfo.ErrAddrIsPrivate{}) {
-		r.log.Debug().Str("ip", ip.String()).Msg("ip address is private")
+	} else if errors.Is(err, ipinfo.ErrAddrIsPrivate) {
+		r.log.Debug().Str("ip", ip.String()).Msg("address is private")
 	} else {
-		r.log.Warn().Str("ip", ip.String()).Err(err).Msg("failed to lookup ip address")
+		r.log.Warn().Str("ip", ip.String()).Err(err).Msg("failed to lookup address")
 	}
 
 	return false

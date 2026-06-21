@@ -69,7 +69,7 @@ func (d *DB) Lookup(addr netip.Addr) (*Record, error) {
 		addr.IsMulticast() ||
 		addr.IsLinkLocalUnicast() ||
 		addr.IsLinkLocalMulticast() {
-		return nil, &ErrAddrIsPrivate{addr}
+		return nil, ErrAddrIsPrivate
 	}
 
 	reader := d.table.Load()
@@ -81,7 +81,7 @@ func (d *DB) Lookup(addr netip.Addr) (*Record, error) {
 	if result.Err() != nil {
 		return nil, fmt.Errorf("failed to lookup IP address: %w", result.Err())
 	} else if !result.Found() {
-		return nil, &ErrIpNotFound{addr}
+		return nil, ErrIpNotFound
 	}
 
 	var record *Record
