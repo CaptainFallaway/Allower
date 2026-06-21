@@ -13,7 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Lookup interface abstracts the address lookup dependency for testability.
+// Lookup interface abstracts the address lookup dependency for testability. (but I don't care I load the dataset in the tests anyways XD)
 type Lookuper interface {
 	Lookup(addr netip.Addr) (*ipinfo.Record, error)
 }
@@ -27,11 +27,11 @@ type Rule struct {
 	ass    []config.AS
 	ranges []config.Range
 
-	db  Lookuper
-	log zerolog.Logger
+	lookuper Lookuper
+	log      zerolog.Logger
 }
 
-func New(cr config.Rule, db Lookuper) *Rule {
+func New(cr config.Rule, lookuper Lookuper) *Rule {
 	log := log.With().Str("rule", cr.Name).Logger()
 
 	return &Rule{
@@ -41,7 +41,7 @@ func New(cr config.Rule, db Lookuper) *Rule {
 		continentSet: newStringSet(cr.Continents),
 		ass:          cr.ASs,
 		ranges:       cr.Ranges,
-		db:           db,
+		lookuper:     lookuper,
 		log:          log,
 	}
 }
@@ -125,7 +125,7 @@ func (r *Rule) IsAllowed(ip netip.Addr) bool {
 	}
 
 	// If the address is not explicitly allowed or blocked, we check the address info for country, continent, and AS matches.
-	record, err := r.db.Lookup(ip)
+	record, err := r.lookuper.Lookup(ip)
 	if err == nil {
 		defer record.Free()
 
