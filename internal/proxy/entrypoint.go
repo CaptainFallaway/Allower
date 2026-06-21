@@ -51,7 +51,7 @@ func NewEntrypoint(ctx context.Context, ec config.Entrypoint, allowers []Allower
 
 	e.listener = ln.(*net.TCPListener)
 
-	e.log.Info().Str("addr", ec.Addr).Msg("entrypoint listening")
+	e.log.Info().Str("addr", ec.Addr).Str("target", ec.Target).Msg("entrypoint listening")
 
 	return e, nil
 }
