@@ -37,7 +37,7 @@ func run(appCtx context.Context) error {
 		return err
 	}
 
-	db := ipinfo.New(env.ipinfoToken, env.ipinfoDir)
+	db := ipinfo.New(env.ipinfoToken, env.ipinfoDir, ipinfo.WithLookupRecordPool())
 	go periodicallySyncDB(appCtx, env.ipinfoSync, db)
 
 	conf, err := config.Load(env.configPath)
