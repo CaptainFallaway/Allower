@@ -18,7 +18,7 @@ type ErrIpNotFound struct {
 }
 
 func (e ErrIpNotFound) Error() string {
-	return fmt.Sprintf("address not found: %s", e.Addr)
+	return fmt.Sprintf("address not found in dataset: %s", e.Addr)
 }
 
 type ErrAddrIsPrivate struct {
