@@ -144,7 +144,7 @@ func TestIsAllowed(t *testing.T) {
 		},
 		{
 			name: "continent: non-matching code is denied",
-			rule: config.Rule{Continents: []string{"EU"}},
+			rule: config.Rule{Continents: []string{"AS"}},
 			ip:   mustAddr("1.2.3.4"),
 			want: false,
 		},
@@ -218,13 +218,13 @@ func TestIsAllowed(t *testing.T) {
 		// ── autonomous systems ───────────────────────────────────────────────
 		{
 			name: "AS number: exact match is allowed",
-			rule: config.Rule{ASs: []config.AS{{Number: "AS24429"}}},
+			rule: config.Rule{ASs: []config.AS{{Number: "AS45102"}}},
 			ip:   mustAddr("47.88.0.1"),
 			want: true,
 		},
 		{
 			name: "AS domain: exact match is allowed",
-			rule: config.Rule{ASs: []config.AS{{Domain: "alibabacloud.com"}}},
+			rule: config.Rule{ASs: []config.AS{{Domain: "alibabagroup.com"}}},
 			ip:   mustAddr("47.88.0.1"),
 			want: true,
 		},
@@ -236,7 +236,7 @@ func TestIsAllowed(t *testing.T) {
 		},
 		{
 			name: "AS name: partial lowercase match is allowed",
-			rule: config.Rule{ASs: []config.AS{{Name: "taobao"}}},
+			rule: config.Rule{ASs: []config.AS{{Name: "(us) technology"}}},
 			ip:   mustAddr("47.88.0.1"),
 			want: true,
 		},
@@ -259,8 +259,8 @@ func TestIsAllowed(t *testing.T) {
 			rule: config.Rule{
 				Allow:      []netip.Addr{mustAddr("9.9.9.9")},
 				Block:      []netip.Addr{mustAddr("8.8.8.8")},
-				Countries:  []string{"SE"},
-				Continents: []string{"EU"},
+				Countries:  []string{"CN"},
+				Continents: []string{"AS"},
 				Ranges:     []config.Range{cidr("10.0.0.0/8")},
 				ASs:        []config.AS{{Number: "AS24429"}},
 			},

@@ -117,11 +117,11 @@ func (r *Rule) IsAllowed(ip netip.Addr) bool {
 
 	record, err := r.db.Lookup(ip)
 	if err == nil {
-		if contains(r.countrySet, toLower(record.Country)) {
+		if contains(r.countrySet, toLower(record.CountryCode)) {
 			return true
 		}
 
-		if contains(r.continentSet, toLower(record.Continent)) {
+		if contains(r.continentSet, toLower(record.ContinentCode)) {
 			return true
 		}
 
