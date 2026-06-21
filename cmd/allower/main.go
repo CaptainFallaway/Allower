@@ -116,7 +116,7 @@ func newAppContext() context.Context {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go func() {
-		<-c
+		log.Info().Msgf("received signal %q shutting down...", <-c)
 		cancel()
 	}()
 
