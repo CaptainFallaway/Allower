@@ -8,8 +8,10 @@ This is a full illustration of the config file.
 entrypoints:
     - name: lmstudio
       addr: :8080                    # host:port to listen on
+      keepalive: 30s                 # optional - os socket keepalive tunable - default is 30s
       target: 192.168.1.4:1234       # host:port to forward to
-      rules: [only_swedish]          # optional — omit or leave empty to allow all requests
+      dial_timeout: 30s              # optional - timeout for establishing a connection to the target - default is 30s
+      rules: [only_swedish]          # optional - omit or leave empty to allow all requests
 
 rules:
     - name: only_swedish
@@ -19,17 +21,17 @@ rules:
           - 1.2.3.4
       block:                         # always denied, unless the IP is also in allow
           - 5.6.7.8
-      countries: [SE]                # ISO 3166-1 alpha-2 country codes
-      continents: [EU]               # continent codes (AF, AN, AS, EU, NA, OC, SA)
       ranges:
           - from: 85.24.194.40       # inclusive from/to address range ...
             to:   85.24.194.42
           - prefix: 85.24.194.0/25   # ... or a CIDR prefix; one form per entry, not both
+      countries: [SE]                # ISO 3166-1 alpha-2 country codes
+      continents: [EU]               # continent codes (AF, AN, AS, EU, NA, OC, SA)
       ass:                           # autonomous systems to allow
           - number: AS24429          # exact match; written with the AS prefix
             name: Taobao             # case-insensitive substring of the AS name
             domain: alibabacloud.com # exact match of the AS domain
-            # each field is optional and checked independently — see "AS matching"
+            # each field is optional and checked independently - see "AS matching"
 ```
 
 ## Rule evaluation
@@ -42,9 +44,9 @@ Within a single **rule**, conditions are short-circuit evaluated in the followin
 |---|---|---|
 | 1 | IP is in `allow` | ✅ allowed — overrides everything, including `block` |
 | 2 | IP is in `block` | ❌ denied — overrides all conditions below |
-| 3 | IP's country code is in `countries` | ✅ allowed |
-| 4 | IP's continent code is in `continents` | ✅ allowed |
-| 5 | IP falls within any entry in `ranges` | ✅ allowed |
+| 3 | IP falls within any entry in `ranges` | ✅ allowed |
+| 4 | IP's country code is in `countries` | ✅ allowed |
+| 5 | IP's continent code is in `continents` | ✅ allowed |
 | 6 | IP's AS matches any entry in `ass` | ✅ allowed |
 | — | *(nothing matched)* | ❌ denied |
 
