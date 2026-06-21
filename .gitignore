@@ -2,3 +2,4 @@ test-data/*
 bin
 .env
 *.out
+*.test
