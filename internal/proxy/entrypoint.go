@@ -36,6 +36,7 @@ func NewEntrypoint(ctx context.Context, ec config.Entrypoint, allowers []Allower
 		ctx:         ctx,
 		target:      ec.Target,
 		dialTimeout: ec.DialTimeout.Duration,
+		keepalive:   ec.Keepalive.Duration,
 		allowers:    allowers,
 	}
 

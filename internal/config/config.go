@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/CaptainFallaway/Allower/pkg/hashset"
 	"go.yaml.in/yaml/v4"
@@ -61,14 +62,16 @@ func validateConfig(c *Config) error {
 		ruleSet.Add(rule.Name)
 	}
 
-	for _, entrypoint := range c.Entrypoints {
+	for i := range c.Entrypoints {
+		entrypoint := &c.Entrypoints[i]
+
 		// Set keepalive and dial timeout to 30s if not set, as this is a reasonable default for most use cases
 		if entrypoint.Keepalive.Duration == 0 {
-			entrypoint.Keepalive.Duration = 30
+			entrypoint.Keepalive.Duration = time.Second * 30
 		}
 
 		if entrypoint.DialTimeout.Duration == 0 {
-			entrypoint.DialTimeout.Duration = 30
+			entrypoint.DialTimeout.Duration = time.Second * 30
 		}
 
 		// Check so all rules used by entrypoints are defined
@@ -79,7 +82,9 @@ func validateConfig(c *Config) error {
 		}
 	}
 
-	for _, rule := range c.Rules {
+	for i := range c.Rules {
+		rule := &c.Rules[i]
+
 		// Check the AS numbers, they should be in the format AS12345
 		for i, as := range rule.ASs {
 			if strings.HasPrefix(as.Number, "AS") {
