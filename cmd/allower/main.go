@@ -55,7 +55,7 @@ func run(appCtx context.Context) error {
 		defer ep.Close()
 	}
 
-	log.Info().Msgf("%d entrypoints listening, waiting for shutdown", len(entrypoints))
+	log.Info().Msgf("%d entrypoints listening...", len(entrypoints))
 
 	<-appCtx.Done()
 
