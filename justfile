@@ -43,5 +43,5 @@ profile folder pkg type run=".":
     go test -v -run="-" -bench="{{ run }}" -{{ type }}profile={{ type }}.out ./{{ folder }}/{{ pkg }}/
 
 [arg('type', pattern='cpu|mem|block|mutex')]
-pprof type:
-    go tool pprof -http=:8080 -no_browser {{ type }}.out
+pprof type port="8080":
+    go tool pprof -http=:{{ port }} -no_browser {{ type }}.out
