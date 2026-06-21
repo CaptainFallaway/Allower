@@ -7,7 +7,6 @@ import (
 	"net"
 	"sync"
 
-	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
 )
 
@@ -21,7 +20,7 @@ func (e *Entrypoint) handleConn(client *net.TCPConn) {
 
 	for _, a := range e.allowers {
 		if !a.IsAllowed(ip) {
-			e.log.Info().Msg("connection denied")
+			log.Info().Msg("connection denied")
 			return
 		}
 	}
@@ -33,7 +32,7 @@ func (e *Entrypoint) handleConn(client *net.TCPConn) {
 
 	target, err := new(net.Dialer).DialContext(ctx, "tcp", e.target)
 	if err != nil {
-		e.log.Error().Err(err).Msg("failed to dial target")
+		log.Error().Err(err).Msg("failed to dial target")
 		cancel()
 		return
 	}
@@ -48,7 +47,7 @@ func (e *Entrypoint) handleConn(client *net.TCPConn) {
 	client.SetKeepAlivePeriod(e.keepalive)
 	targetTCP.SetKeepAlivePeriod(e.keepalive)
 
-	e.log.Debug().Msg("proxying connection")
+	log.Debug().Msg("proxying connection")
 
 	e.bidirectionalCopy(log, target.(*net.TCPConn), client)
 }
@@ -61,13 +60,10 @@ func (e *Entrypoint) bidirectionalCopy(log zerolog.Logger, target, client *net.T
 	go func() {
 		defer wg.Done()
 
-		written, err := io.Copy(target, client)
+		_, err := io.Copy(target, client)
 		if err != nil && !errors.Is(err, io.EOF) {
 			log.Error().Err(err).Msg("error copying from client to target")
 		}
-
-		// Don't know If i want to keep this
-		log.Debug().Str("transferred", humanize.Bytes(uint64(written))).Msg("client to target copy complete")
 
 		target.CloseWrite() // signal EOF downstream
 	}()
@@ -76,13 +72,10 @@ func (e *Entrypoint) bidirectionalCopy(log zerolog.Logger, target, client *net.T
 	go func() {
 		defer wg.Done()
 
-		written, err := io.Copy(client, target)
+		_, err := io.Copy(client, target)
 		if err != nil && !errors.Is(err, io.EOF) {
 			log.Error().Err(err).Msg("error copying from target to client")
 		}
-
-		// Don't know If i want to keep this
-		log.Debug().Str("transferred", humanize.Bytes(uint64(written))).Msg("client to target copy complete")
 
 		client.CloseWrite() // signal EOF back to client
 	}()

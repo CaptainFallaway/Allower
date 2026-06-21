@@ -51,10 +51,12 @@ func NewEntrypoint(ctx context.Context, ec config.Entrypoint, allowers []Allower
 
 	e.listener = ln.(*net.TCPListener)
 
+	e.log.Info().Str("addr", ec.Addr).Msg("entrypoint listening")
+
 	return e, nil
 }
 
-func (e *Entrypoint) Listen() {
+func (e *Entrypoint) Accept() {
 	for {
 		conn, err := e.listener.AcceptTCP()
 		if errors.Is(err, net.ErrClosed) {

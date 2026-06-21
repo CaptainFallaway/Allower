@@ -18,10 +18,16 @@ import (
 )
 
 func init() {
-	if do, _ := strconv.ParseBool(os.Getenv("PRETTY_LOGGING")); do {
+	if pretty, _ := strconv.ParseBool(os.Getenv("PRETTY_LOGGING")); pretty {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.DateTime})
 	} else {
 		zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	}
+
+	if debug, _ := strconv.ParseBool(os.Getenv("DEBUG")); debug {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	} else {
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
 }
 
@@ -45,9 +51,11 @@ func run(appCtx context.Context) error {
 	}
 
 	for _, ep := range entrypoints {
-		go ep.Listen()
+		go ep.Accept()
 		defer ep.Close()
 	}
+
+	log.Info().Msgf("%d entrypoints listening, waiting for shutdown", len(entrypoints))
 
 	<-appCtx.Done()
 
