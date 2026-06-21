@@ -7,6 +7,15 @@ run cmd *ARGS:
 docker:
     @docker build -t allower:latest . --load
 
+up:
+	@docker compose down && docker compose up --build -d
+
+down:
+	@docker compose down
+
+logs service="allower":
+	@docker compose logs {{ service }} -f
+
 build cmd:
     @echo "Building smol binary for {{ cmd }}..."
     go build -o ./bin/{{ cmd }} -ldflags="-w -s" ./cmd/{{ cmd }}/
