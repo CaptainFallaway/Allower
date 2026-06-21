@@ -12,6 +12,9 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
+const keepaliveDefault = 2 * time.Minute
+const dialTimeoutDefault = 15 * time.Second
+
 const configTemplate = `#Example config.yaml
 
 entrypoints:
@@ -68,11 +71,11 @@ func validateConfig(c *Config) error {
 
 		// Set keepalive and dial timeout to 30s if not set, as this is a reasonable default for most use cases
 		if entrypoint.Keepalive.Duration == 0 {
-			entrypoint.Keepalive.Duration = time.Second * 30
+			entrypoint.Keepalive.Duration = keepaliveDefault
 		}
 
 		if entrypoint.DialTimeout.Duration == 0 {
-			entrypoint.DialTimeout.Duration = time.Second * 10
+			entrypoint.DialTimeout.Duration = dialTimeoutDefault
 		}
 
 		// Check so all rules used by entrypoints are defined
