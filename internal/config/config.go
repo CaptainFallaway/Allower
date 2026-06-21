@@ -121,7 +121,7 @@ func validateConfig(c *Config) error {
 }
 
 func createConfigFile(path string) error {
-	f, err := os.Create(path)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0666)
 	if err != nil {
 		return err
 	}
