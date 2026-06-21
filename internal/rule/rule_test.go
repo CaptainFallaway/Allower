@@ -288,7 +288,7 @@ func TestIsAllowed(t *testing.T) {
 }
 
 func BenchmarkIsAllowed(b *testing.B) {
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	zerolog.SetGlobalLevel(zerolog.InfoLevel) // Ignore debug logs for best performance
 
 	db := LoadAndGetDB(b)
 
