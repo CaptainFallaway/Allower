@@ -8,3 +8,4 @@
 
 - [ ] Implement mac address allow rules
 - [ ] Hot reloading for rule configuration with fsnotify
+- [ ] Look into acctually implementing the ipinfo package with an own implemented in memory trie algorithm instead of using mmdb.
