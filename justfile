@@ -4,11 +4,8 @@ set dotenv-override := true
 run cmd *ARGS:
     @go run ./cmd/{{ cmd }}/ {{ ARGS }}
 
-docker:
-    @docker build -t allower:latest . --load
-
 up:
-	@docker compose down && docker compose up --build -d
+	@docker compose up --build -d
 
 down:
 	@docker compose down
