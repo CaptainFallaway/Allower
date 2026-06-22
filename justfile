@@ -4,8 +4,14 @@ set dotenv-override := true
 run cmd *ARGS:
     @go run ./cmd/{{ cmd }}/ {{ ARGS }}
 
+just docker-build:
+	@docker compose build
+
 up:
 	@docker compose up --build -d
+
+restart:
+	@docker compose restart
 
 down:
 	@docker compose down
