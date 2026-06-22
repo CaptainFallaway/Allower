@@ -29,11 +29,10 @@ type Rule struct {
 	ass    []config.AS
 	ranges []config.Range
 
-	log     zerolog.Logger
-	silence bool
+	log zerolog.Logger
 }
 
-func New(cr config.Rule, lookuper Lookuper, silence bool) *Rule {
+func New(cr config.Rule, lookuper Lookuper) *Rule {
 	log := log.With().Str("rule", cr.Name).Logger()
 
 	return &Rule{
@@ -45,7 +44,6 @@ func New(cr config.Rule, lookuper Lookuper, silence bool) *Rule {
 		ass:          cr.ASs,
 		ranges:       cr.Ranges,
 		log:          log,
-		silence:      silence,
 	}
 }
 
@@ -97,8 +95,8 @@ var noopLog = zerolog.Nop()
 func (r *Rule) IsAllowed(ip netip.Addr) bool {
 	log := noopLog
 
-	// Avoid making an allocation for the logger if trace logging is not enabled or if silenced
-	if zerolog.GlobalLevel() == zerolog.TraceLevel && !r.silence {
+	// Avoid making an allocation for the logger if trace logging is not enabled
+	if zerolog.GlobalLevel() == zerolog.TraceLevel {
 		log = r.log.With().Str("ip", ip.String()).Logger()
 	}
 
@@ -157,7 +155,7 @@ func (r *Rule) IsAllowed(ip netip.Addr) bool {
 			}
 		}
 	} else if errors.Is(err, ipinfo.ErrAddrIsPrivate) {
-		log.Trace().Msg("address is private")
+		log.Trace().Msg("cannot lookup private address")
 	} else {
 		log.Warn().Err(err).Msg("failed to lookup address")
 	}

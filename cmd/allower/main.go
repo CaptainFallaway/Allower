@@ -33,7 +33,7 @@ func run(appCtx context.Context) error {
 		return err
 	}
 
-	entrypoints, err := makeEntrypoints(appCtx, *conf, ds, env.logSilence)
+	entrypoints, err := makeEntrypoints(appCtx, *conf, ds)
 	if err != nil {
 		return err
 	}
@@ -80,10 +80,10 @@ func configureLogging(pretty bool, level string) {
 	}
 }
 
-func makeEntrypoints(appCtx context.Context, conf config.Config, ds *ipinfo.Dataset, logSilence bool) ([]*proxy.Entrypoint, error) {
+func makeEntrypoints(appCtx context.Context, conf config.Config, ds *ipinfo.Dataset) ([]*proxy.Entrypoint, error) {
 	rulesMap := make(map[string]*rule.Rule, len(conf.Rules))
 	for _, r := range conf.Rules {
-		rulesMap[r.Name] = rule.New(r, ds, logSilence)
+		rulesMap[r.Name] = rule.New(r, ds)
 	}
 
 	eps := make([]*proxy.Entrypoint, len(conf.Entrypoints))
@@ -95,7 +95,7 @@ func makeEntrypoints(appCtx context.Context, conf config.Config, ds *ipinfo.Data
 			allowers[j] = rulesMap[r] // we can do this because rules are guaranteed to be defined before entrypoints in the config package
 		}
 
-		eps[i], err = proxy.NewEntrypoint(appCtx, ep, allowers, logSilence)
+		eps[i], err = proxy.NewEntrypoint(appCtx, ep, allowers)
 		if err != nil {
 			return nil, err
 		}

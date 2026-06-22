@@ -28,18 +28,16 @@ type Entrypoint struct {
 	keepalive   time.Duration // Tunable OS socket keepalive duration
 	listener    *net.TCPListener
 
-	log     zerolog.Logger
-	silence bool
+	log zerolog.Logger
 }
 
-func NewEntrypoint(ctx context.Context, ec config.Entrypoint, allowers []Allower, silence bool) (*Entrypoint, error) {
+func NewEntrypoint(ctx context.Context, ec config.Entrypoint, allowers []Allower) (*Entrypoint, error) {
 	e := &Entrypoint{
 		ctx:         ctx,
 		allowers:    allowers,
 		target:      ec.Target,
 		dialTimeout: ec.DialTimeout.Duration,
 		keepalive:   ec.Keepalive.Duration,
-		silence:     silence,
 	}
 
 	lc := new(net.ListenConfig) // Mostly for the context usage, might want to look into SO_REUSEPORT later tho
@@ -67,7 +65,7 @@ func (e *Entrypoint) Accept() {
 		traceSeq := seq.Add(1)
 		if errors.Is(err, net.ErrClosed) {
 			return
-		} else if err != nil && !e.silence {
+		} else if err != nil {
 			log.Error().Err(err).Uint64("trace", traceSeq).Msg("failed to accept connection")
 			continue
 		}

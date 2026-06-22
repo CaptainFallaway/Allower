@@ -13,7 +13,6 @@ type env struct {
 	ipinfoSync      time.Duration
 	configPath      string
 	metricsInterval time.Duration
-	logSilence      bool
 	logPretty       bool
 	logLevel        string
 }
@@ -60,11 +59,6 @@ func getEnv() (*env, error) {
 		return nil, err
 	}
 
-	logSilence, err := getBool("LOG_SILENCE")
-	if err != nil {
-		return nil, err
-	}
-
 	logPretty, err := getBool("LOG_PRETTY")
 	if err != nil {
 		return nil, err
@@ -81,7 +75,6 @@ func getEnv() (*env, error) {
 		ipinfoSync:      ipinfoSync,
 		configPath:      configPath,
 		metricsInterval: metricsInterval,
-		logSilence:      logSilence,
 		logPretty:       logPretty,
 		logLevel:        logLevel,
 	}, nil

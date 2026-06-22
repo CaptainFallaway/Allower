@@ -5,22 +5,23 @@ import (
 	"errors"
 	"io"
 	"net"
+	"net/netip"
 	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
-var noopLog = zerolog.Nop()
+func getIp(ta *net.TCPAddr) netip.Addr {
+	ip, _ := netip.AddrFromSlice(ta.IP)
+	return ip.Unmap() // Unmap IPv4-mapped IPv6 addresses to pure IPv4 for consistent allow matching & logging
+}
 
 func (e *Entrypoint) handleConn(client *net.TCPConn, traceSeq uint64, start time.Time) {
-	// net.TCPConn.RemoteAddr() returns a net.Addr, but we know it's a *net.TCPAddr, so we can assert it and extract the IP address.
-	ip := client.RemoteAddr().(*net.TCPAddr).AddrPort().Addr().Unmap() // Unmap IPv4-mapped IPv6 addresses to pure IPv4 for consistent allow matching & logging
+	ip := getIp(client.RemoteAddr().(*net.TCPAddr))
 
-	log := noopLog
-	if !e.silence {
-		log = e.log.With().Str("remote_ip", ip.String()).Uint64("trace", traceSeq).Logger()
-	}
+	log := e.log.With().Str("remote_ip", ip.String()).Uint64("trace", traceSeq).Logger()
 
 	for _, a := range e.allowers {
 		if !a.IsAllowed(ip) {
@@ -36,10 +37,9 @@ func (e *Entrypoint) handleConn(client *net.TCPConn, traceSeq uint64, start time
 
 	log.Debug().Msg("connection accepted")
 
-	// Dial the target with a timeout context to avoid hanging if the target is unreachable.
 	ctx, cancel := context.WithTimeout(e.ctx, e.dialTimeout)
 
-	target, err := new(net.Dialer).DialContext(ctx, "tcp", e.target) // target gets cleaned up in `bidiretionalCopy`
+	target, err := new(net.Dialer).DialContext(ctx, "tcp", e.target) // target gets closed in `bidiretionalCopy`
 	if err != nil {
 		log.Error().Err(err).Msg("failed to dial target")
 		client.Close()
@@ -51,20 +51,24 @@ func (e *Entrypoint) handleConn(client *net.TCPConn, traceSeq uint64, start time
 	targetTCP := target.(*net.TCPConn)
 
 	// Set keep-alive on both connections to help detect dead peers.
+	e.setKeepalive(client, targetTCP)
+
+	e.bidirectionalCopy(log, targetTCP, client)
+}
+
+func (e *Entrypoint) setKeepalive(client, target *net.TCPConn) {
 	if err := client.SetKeepAlive(true); err != nil {
 		log.Warn().Err(err).Msg("failed to configure client keepalive")
 	}
-	if err := targetTCP.SetKeepAlive(true); err != nil {
+	if err := target.SetKeepAlive(true); err != nil {
 		log.Warn().Err(err).Msg("failed to configure target keepalive")
 	}
 	if err := client.SetKeepAlivePeriod(e.keepalive); err != nil {
 		log.Warn().Err(err).Msg("failed to configure client keepalive period")
 	}
-	if err := targetTCP.SetKeepAlivePeriod(e.keepalive); err != nil {
+	if err := target.SetKeepAlivePeriod(e.keepalive); err != nil {
 		log.Warn().Err(err).Msg("failed to configure target keepalive period")
 	}
-
-	e.bidirectionalCopy(log, targetTCP, client)
 }
 
 func (e *Entrypoint) bidirectionalCopy(log zerolog.Logger, target, client *net.TCPConn) {
