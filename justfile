@@ -4,7 +4,7 @@ set dotenv-override := true
 run cmd *ARGS:
     @go run ./cmd/{{ cmd }}/ {{ ARGS }}
 
-just docker-build:
+dbuild:
 	@docker build -t allower:latest . --load
 
 up:
