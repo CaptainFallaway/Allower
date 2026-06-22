@@ -5,7 +5,7 @@ run cmd *ARGS:
     @go run ./cmd/{{ cmd }}/ {{ ARGS }}
 
 just docker-build:
-	@docker compose build
+	@docker build -t allower:latest . --load
 
 up:
 	@docker compose up --build -d
