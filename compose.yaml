@@ -5,11 +5,23 @@ services:
             context: .
             dockerfile: Dockerfile
         container_name: allower
-        network_mode: host
+        ports:
+            - 1024:1024 # Tihi
+        networks:
+            - demo-net
         environment:
             IPINFO_TOKEN: ${IPINFO_TOKEN:-}
-            LOG_PRETTY: false
-            LOG_LEVEL: "info"
+            LOG_PRETTY: true
+            LOG_LEVEL: "debug"
             METRICS: 30s
         volumes:
             - ./test-data:/persist
+    demo:
+        image: nginxdemos/hello
+        container_name: sse
+        networks:
+            - demo-net
+
+networks:
+    demo-net:
+        driver: bridge
