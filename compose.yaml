@@ -11,8 +11,8 @@ services:
             - demo-net
         environment:
             IPINFO_TOKEN: ${IPINFO_TOKEN:-}
-            LOG_PRETTY: true
-            LOG_LEVEL: "debug"
+            LOG_PRETTY: false
+            LOG_LEVEL: "info"
             METRICS: 30s
         volumes:
             - ./test-data:/persist
