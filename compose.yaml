@@ -18,7 +18,7 @@ services:
             - ./test-data:/persist
     demo:
         image: nginxdemos/hello
-        container_name: sse
+        container_name: demo-site
         networks:
             - demo-net
 
