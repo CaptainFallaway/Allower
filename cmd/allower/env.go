@@ -22,7 +22,11 @@ func getDuration(ek string) (time.Duration, error) {
 	if !found {
 		return 0, fmt.Errorf("%s environment variable not set", ek)
 	}
-	return time.ParseDuration(durationStr)
+	t, err := time.ParseDuration(durationStr)
+	if err != nil {
+		return 0, fmt.Errorf("invalid duration for %s: %v", ek, err)
+	}
+	return t, nil
 }
 
 func getBool(ek string) (bool, error) {
@@ -30,7 +34,11 @@ func getBool(ek string) (bool, error) {
 	if !found {
 		return false, fmt.Errorf("%s environment variable not set", ek)
 	}
-	return strconv.ParseBool(boolStr)
+	b, err := strconv.ParseBool(boolStr)
+	if err != nil {
+		return false, fmt.Errorf("invalid boolean for %s: %v", ek, err)
+	}
+	return b, nil
 }
 
 func getEnv() (*env, error) {
