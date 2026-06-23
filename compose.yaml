@@ -8,6 +8,7 @@ services:
         ports:
             - 1024:1024 # Tihi
             - 5201:5201
+            - 6060:6060
         networks:
             - demo-net
         environment:
@@ -23,6 +24,7 @@ services:
         networks:
             - demo-net
     iperf3:
+        image: iperf3-server:latest
         build:
             context: ./iperf3-server
         container_name: iperf3-server
