@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
-	"sync/atomic"
 	"time"
 
 	"github.com/CaptainFallaway/Allower/internal/config"
@@ -30,6 +29,8 @@ type Entrypoint struct {
 
 	log    zerolog.Logger
 	dialer *net.Dialer
+
+	closeChan chan<- *net.TCPConn
 }
 
 func NewEntrypoint(ctx context.Context, ec config.Entrypoint, allowers []Allower) (*Entrypoint, error) {
@@ -53,44 +54,38 @@ func NewEntrypoint(ctx context.Context, ec config.Entrypoint, allowers []Allower
 
 	e.listener = ln.(*net.TCPListener)
 
+	// This for some reason made the denying much, much faster :)
+	c := make(chan *net.TCPConn, 1024)
+	e.closeChan = c
+
+	go func() {
+		for {
+			select {
+			case conn := <-c:
+				conn.SetLinger(0)
+				conn.Close()
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
 	e.log.Info().Str("addr", ec.Addr).Int("rules", len(e.allowers)).Msg("entrypoint listening")
 
 	return e, nil
 }
 
-var seq atomic.Uint64
-
 func (e *Entrypoint) Accept() {
 	for {
 		conn, err := e.listener.AcceptTCP()
-		traceSeq := seq.Add(1)
+		start := time.Now()
 		if errors.Is(err, net.ErrClosed) {
 			return
 		} else if err != nil {
-			log.Error().Err(err).Uint64("trace", traceSeq).Msg("failed to accept connection")
+			log.Error().Err(err).Msg("failed to accept connection")
 			continue
 		}
-
-		start := time.Now()
-
-		ip := getIp(conn.RemoteAddr().(*net.TCPAddr))
-
-		log := e.log.With().Stringer("remote_ip", ip).Uint64("trace", traceSeq).Logger()
-
-		for _, a := range e.allowers {
-			if !a.IsAllowed(ip) {
-				Metrics.Record(time.Since(start), true)
-				log.Debug().Msg("connection denied")
-				conn.Close() // Profile to see if I need to make this a goroutine and have a worker pool for closing connections...
-				continue
-			}
-		}
-
-		Metrics.Record(time.Since(start), false)
-
-		log.Debug().Msg("connection accepted")
-
-		go e.handleConn(log, conn)
+		go e.handleConn(conn, start)
 	}
 }
 

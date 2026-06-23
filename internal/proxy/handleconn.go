@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/netip"
 	"sync"
+	"time"
 
 	"github.com/rs/zerolog"
 )
@@ -19,7 +20,24 @@ func getIp(ta *net.TCPAddr) netip.Addr {
 	return ip.Unmap() // Unmap IPv4-mapped IPv6 addresses to pure IPv4 for consistent allow matching & logging
 }
 
-func (e *Entrypoint) handleConn(log zerolog.Logger, client *net.TCPConn) {
+func (e *Entrypoint) handleConn(client *net.TCPConn, start time.Time) {
+	ip := getIp(client.RemoteAddr().(*net.TCPAddr))
+
+	log := e.log.With().Str("remote_ip", ip.String()).Logger()
+
+	for _, a := range e.allowers {
+		if !a.IsAllowed(ip) {
+			Metrics.Record(time.Since(start), true)
+			log.Debug().Msg("connection denied")
+			e.closeChan <- client
+			return
+		}
+	}
+
+	Metrics.Record(time.Since(start), false)
+
+	log.Debug().Msg("connection accepted")
+
 	ctx, cancel := context.WithTimeout(e.ctx, e.dialTimeout)
 
 	target, err := e.dialer.DialContext(ctx, "tcp", e.target) // target gets closed in `bidiretionalCopy`
@@ -91,7 +109,7 @@ func (e *Entrypoint) bidirectionalCopy(log zerolog.Logger, target, client *net.T
 	wg.Add(2)
 
 	go copyOneWay(client, target, "client -> target")
-	copyOneWay(target, client, "target -> client")
+	go copyOneWay(target, client, "target -> client")
 
 	wg.Wait()
 	closeBoth()
