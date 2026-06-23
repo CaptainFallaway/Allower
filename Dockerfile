@@ -18,7 +18,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o ./bin/lookup -ldflags="-w -s" ./cmd/loo
 FROM deps AS allower_build
 
 COPY ./cmd/allower ./cmd/allower
-RUN CGO_ENABLED=0 GOOS=linux go build -o ./bin/allower -ldflags="-w -s" ./cmd/allower
+RUN CGO_ENABLED=0 GOOS=linux go build -o ./bin/allower -ldflags="-w -s" -tags=pprof ./cmd/allower
 
 FROM scratch AS final
 
