@@ -7,6 +7,7 @@ services:
         container_name: allower
         ports:
             - 1024:1024 # Tihi
+            - 5201:5201
         networks:
             - demo-net
         environment:
@@ -19,6 +20,12 @@ services:
     demo:
         image: nginxdemos/hello
         container_name: demo-site
+        networks:
+            - demo-net
+    iperf3:
+        build:
+            context: ./iperf3-server
+        container_name: iperf3-server
         networks:
             - demo-net
 
