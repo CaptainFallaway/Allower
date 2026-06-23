@@ -28,7 +28,8 @@ type Entrypoint struct {
 	keepalive   time.Duration // Tunable OS socket keepalive duration
 	listener    *net.TCPListener
 
-	log zerolog.Logger
+	log    zerolog.Logger
+	dialer *net.Dialer
 }
 
 func NewEntrypoint(ctx context.Context, ec config.Entrypoint, allowers []Allower) (*Entrypoint, error) {
@@ -38,6 +39,7 @@ func NewEntrypoint(ctx context.Context, ec config.Entrypoint, allowers []Allower
 		target:      ec.Target,
 		dialTimeout: ec.DialTimeout.Duration,
 		keepalive:   ec.Keepalive.Duration,
+		dialer:      new(net.Dialer),
 	}
 
 	lc := new(net.ListenConfig) // Mostly for the context usage, might want to look into SO_REUSEPORT later tho
@@ -61,7 +63,6 @@ var seq atomic.Uint64
 func (e *Entrypoint) Accept() {
 	for {
 		conn, err := e.listener.AcceptTCP()
-		start := time.Now()
 		traceSeq := seq.Add(1)
 		if errors.Is(err, net.ErrClosed) {
 			return
@@ -69,7 +70,27 @@ func (e *Entrypoint) Accept() {
 			log.Error().Err(err).Uint64("trace", traceSeq).Msg("failed to accept connection")
 			continue
 		}
-		go e.handleConn(conn, traceSeq, start)
+
+		start := time.Now()
+
+		ip := getIp(conn.RemoteAddr().(*net.TCPAddr))
+
+		log := e.log.With().Stringer("remote_ip", ip).Uint64("trace", traceSeq).Logger()
+
+		for _, a := range e.allowers {
+			if !a.IsAllowed(ip) {
+				Metrics.Record(time.Since(start), true)
+				log.Debug().Msg("connection denied")
+				conn.Close() // Profile to see if I need to make this a goroutine and have a worker pool for closing connections...
+				continue
+			}
+		}
+
+		Metrics.Record(time.Since(start), false)
+
+		log.Debug().Msg("connection accepted")
+
+		go e.handleConn(log, conn)
 	}
 }
 
