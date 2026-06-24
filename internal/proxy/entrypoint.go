@@ -58,7 +58,7 @@ func NewEntrypoint(ctx context.Context, ec config.Entrypoint, allowers []Allower
 	c := make(chan *net.TCPConn, 1024)
 	e.closeChan = c
 
-	go func() {
+	go func() { // May want to test more goroutines
 		for {
 			select {
 			case conn := <-c:
